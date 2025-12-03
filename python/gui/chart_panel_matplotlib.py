@@ -1,0 +1,971 @@
+"""
+AppleTrader Pro - Matplotlib Chart Panel
+Professional candlestick charts without WebEngine dependencies
+"""
+
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox,
+    QPushButton, QFrame
+)
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+import numpy as np
+import pandas as pd
+from datetime import datetime
+import MetaTrader5 as mt5
+
+from core.data_manager import data_manager
+
+
+# Simple theme and settings (inline replacement for config module)
+class SimpleTheme:
+    background = '#0A0E27'
+    surface = '#1E293B'
+    surface_light = '#334155'
+    text_primary = '#F8FAFC'
+    text_secondary = '#94A3B8'
+    accent = '#3B82F6'
+    success = '#10B981'
+    danger = '#EF4444'
+    warning = '#F59E0B'
+    bullish = '#10B981'
+    bearish = '#EF4444'
+    border_color = '#334155'
+    font_size_sm = 12
+    font_size_md = 14
+    font_size_lg = 16
+    font_size_xl = 18
+
+class SimpleAppSettings:
+    default_symbol = 'EURUSD'
+    default_timeframe = 'H4'
+    chart_refresh_interval = 1000  # ms
+
+class SimpleSettings:
+    theme = SimpleTheme()
+    app = SimpleAppSettings()
+
+settings = SimpleSettings()
+
+
+class MplCanvas(FigureCanvasQTAgg):
+    """Matplotlib canvas for embedding in PyQt"""
+
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        # Create figure with dark theme
+        plt.style.use('dark_background')
+        self.fig = Figure(figsize=(width, height), dpi=dpi, facecolor='#0A0E27')
+        self.axes = self.fig.add_subplot(111)
+        self.axes.set_facecolor('#0A0E27')
+        super().__init__(self.fig)
+
+
+class ChartPanel(QWidget):
+    """
+    Professional matplotlib-based charting panel
+    No WebEngine dependencies - works on all systems
+    """
+
+    # Signals
+    timeframe_changed = pyqtSignal(str)
+
+    def __init__(self):
+        super().__init__()
+
+        self.current_symbol = settings.app.default_symbol
+        self.current_timeframe = settings.app.default_timeframe
+
+        # Sample data for demonstration
+        self.candle_data = []
+
+        # Loading flag to prevent updates during data reload
+        self.is_loading = False
+
+        # MT5 connection status
+        self.mt5_initialized = False
+        self.init_mt5_connection()
+
+        self.init_ui()
+
+        # Update timer
+        self.update_timer = QTimer()
+        self.update_timer.timeout.connect(self.update_chart)
+        self.update_timer.start(settings.app.chart_refresh_interval)
+
+    def init_ui(self):
+        """Initialize UI components"""
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Toolbar
+        toolbar = self.create_toolbar()
+        layout.addWidget(toolbar)
+
+        # Chart canvas
+        self.canvas = MplCanvas(self, width=10, height=6, dpi=100)
+        layout.addWidget(self.canvas)
+
+        # Initialize chart
+        self.init_chart()
+
+    def create_toolbar(self) -> QFrame:
+        """Create chart toolbar with controls"""
+
+        toolbar = QFrame()
+        toolbar.setFixedHeight(60)
+        toolbar.setStyleSheet(f"""
+            QFrame {{
+                background-color: {settings.theme.surface};
+                border-bottom: 1px solid {settings.theme.border_color};
+                border-radius: 0;
+            }}
+        """)
+
+        layout = QHBoxLayout(toolbar)
+        layout.setContentsMargins(16, 8, 16, 8)
+
+        # Symbol selector (allow user to view any symbol)
+        symbol_label_text = QLabel("Symbol:")
+        symbol_label_text.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.text_secondary};
+                font-size: {settings.theme.font_size_md}px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        layout.addWidget(symbol_label_text)
+
+        # Symbol dropdown
+        self.symbol_combo = QComboBox()
+        self.symbol_combo.addItems(['GBPUSD', 'EURUSD', 'USDJPY', 'AUDUSD', 'USDCAD',
+                                     'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY'])
+        self.symbol_combo.setCurrentText(self.current_symbol)
+        self.symbol_combo.currentTextChanged.connect(self.on_symbol_changed)
+        self.symbol_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+                padding: 8px 12px;
+                padding-right: 30px;
+                min-width: 100px;
+                font-size: {settings.theme.font_size_md}px;
+                font-weight: 600;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {settings.theme.text_secondary};
+                margin-right: 5px;
+            }}
+            QComboBox:hover {{
+                border-color: {settings.theme.accent};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                selection-background-color: {settings.theme.accent};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+            }}
+        """)
+        layout.addWidget(self.symbol_combo)
+
+        layout.addSpacing(20)
+
+        # Timeframe selector
+        tf_label = QLabel("Timeframe:")
+        tf_label.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.text_secondary};
+                font-size: {settings.theme.font_size_md}px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        layout.addWidget(tf_label)
+
+        self.timeframe_combo = QComboBox()
+        self.timeframe_combo.addItems(['M1', 'M5', 'M15', 'M30', 'H1', 'H4', 'D1', 'W1'])
+        self.timeframe_combo.setCurrentText(self.current_timeframe)
+        self.timeframe_combo.currentTextChanged.connect(self.on_timeframe_changed)
+        self.timeframe_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+                padding: 8px 12px;
+                padding-right: 30px;
+                min-width: 80px;
+                font-size: {settings.theme.font_size_md}px;
+                font-weight: 600;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {settings.theme.text_secondary};
+                margin-right: 5px;
+            }}
+            QComboBox:hover {{
+                border-color: {settings.theme.accent};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                selection-background-color: {settings.theme.accent};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+            }}
+        """)
+        layout.addWidget(self.timeframe_combo)
+
+        layout.addStretch()
+
+        # Status label
+        self.status_label = QLabel("Chart Ready")
+        self.status_label.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.success};
+                font-size: {settings.theme.font_size_sm}px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        layout.addWidget(self.status_label)
+
+        return toolbar
+
+    def init_mt5_connection(self):
+        """Initialize connection to MetaTrader5"""
+        try:
+            if not mt5.initialize():
+                self.mt5_initialized = False
+                return
+
+            self.mt5_initialized = True
+
+        except Exception as e:
+            self.mt5_initialized = False
+
+    def get_mt5_timeframe(self, timeframe_str: str):
+        """Convert timeframe string to MT5 constant"""
+        timeframe_map = {
+            'M1': mt5.TIMEFRAME_M1,
+            'M5': mt5.TIMEFRAME_M5,
+            'M15': mt5.TIMEFRAME_M15,
+            'M30': mt5.TIMEFRAME_M30,
+            'H1': mt5.TIMEFRAME_H1,
+            'H4': mt5.TIMEFRAME_H4,
+            'D1': mt5.TIMEFRAME_D1,
+            'W1': mt5.TIMEFRAME_W1,
+        }
+        return timeframe_map.get(timeframe_str, mt5.TIMEFRAME_M5)
+
+    def load_historical_data(self, symbol: str = None, timeframe: str = None, count: int = 100):
+        """Load historical candles from MT5"""
+        if not self.mt5_initialized:
+            return False
+
+        try:
+            # Try to get symbol from data_manager (what EA is actually trading)
+            if symbol is None:
+                price_data = data_manager.get_latest_price()
+                symbol = price_data.get('symbol', self.current_symbol)
+                # Update current_symbol to match what EA is trading
+                if symbol and symbol != self.current_symbol:
+                    self.current_symbol = symbol
+                    # Also update the dropdown to match EA's symbol
+                    self.symbol_combo.setCurrentText(symbol)
+
+            timeframe = timeframe or self.current_timeframe
+            mt5_timeframe = self.get_mt5_timeframe(timeframe)
+
+            # Get historical rates from MT5
+            rates = mt5.copy_rates_from_pos(symbol, mt5_timeframe, 0, count)
+
+            if rates is None or len(rates) == 0:
+                return False
+
+            # Convert to our candle format
+            self.candle_data = []
+            for i, rate in enumerate(rates):
+                candle = {
+                    'time': i,
+                    'open': rate['open'],
+                    'high': rate['high'],
+                    'low': rate['low'],
+                    'close': rate['close'],
+                    'timestamp': rate['time']
+                }
+                self.candle_data.append(candle)
+
+            return True
+
+        except Exception as e:
+            return False
+
+    def init_chart(self):
+        """Initialize chart with historical and live MT5 data"""
+
+        # First, try to load historical data from MT5
+        if self.mt5_initialized:
+            success = self.load_historical_data()
+            if not success:
+                # Fallback to live data if historical load fails
+                self.candle_data = []
+                self.get_live_mt5_data()
+        else:
+            # MT5 not available, use live data from JSON
+            self.candle_data = []
+            self.get_live_mt5_data()
+
+        self.plot_candlesticks()
+
+    def get_live_mt5_data(self):
+        """Get live price from MT5 data manager"""
+
+        try:
+            # Get current price from data manager
+            price_data = data_manager.get_latest_price()
+
+            bid = price_data.get('bid', 1.32000)
+            ask = price_data.get('ask', 1.32020)
+
+            # Validate prices - must be positive
+            if bid <= 0 or ask <= 0:
+                return
+
+            mid_price = (bid + ask) / 2
+
+            # Create a simple candle from current price
+            if len(self.candle_data) == 0:
+                # First candle - use current price
+                new_candle = {
+                    'time': 0,
+                    'open': mid_price,
+                    'high': ask,
+                    'low': bid,
+                    'close': mid_price
+                }
+            else:
+                # Add new candle
+                new_candle = {
+                    'time': len(self.candle_data),
+                    'open': self.candle_data[-1]['close'],
+                    'high': ask,
+                    'low': bid,
+                    'close': mid_price
+                }
+
+            self.candle_data.append(new_candle)
+
+            # Keep only last 50 candles
+            if len(self.candle_data) > 50:
+                self.candle_data.pop(0)
+                # Adjust time indices
+                for i, c in enumerate(self.candle_data):
+                    c['time'] = i
+
+        except Exception as e:
+            pass
+
+    def plot_candlesticks(self):
+        """Plot candlestick chart"""
+
+        self.canvas.axes.clear()
+
+        if not self.candle_data:
+            return
+
+        # Extract data (use indices for plotting positions)
+        indices = list(range(len(self.candle_data)))
+        opens = [c['open'] for c in self.candle_data]
+        highs = [c['high'] for c in self.candle_data]
+        lows = [c['low'] for c in self.candle_data]
+        closes = [c['close'] for c in self.candle_data]
+        timestamps = [c.get('timestamp', 0) for c in self.candle_data]
+
+        # Plot candlesticks
+        for i, (idx, o, h, l, c) in enumerate(zip(indices, opens, highs, lows, closes)):
+            color = '#10B981' if c >= o else '#EF4444'  # Green if bullish, red if bearish
+
+            # Draw wick
+            self.canvas.axes.plot([idx, idx], [l, h], color=color, linewidth=1)
+
+            # Draw body
+            body_height = abs(c - o)
+            body_bottom = min(o, c)
+            rect = Rectangle((idx - 0.3, body_bottom), 0.6, body_height,
+                           facecolor=color, edgecolor=color)
+            self.canvas.axes.add_patch(rect)
+
+        # Styling
+        self.canvas.axes.set_facecolor('#0A0E27')
+        self.canvas.axes.grid(True, alpha=0.2, color='#1E293B')
+        self.canvas.axes.set_xlabel('Time', color='#94A3B8', fontsize=10)
+        self.canvas.axes.set_ylabel('Price', color='#94A3B8', fontsize=10)
+        self.canvas.axes.tick_params(colors='#94A3B8', labelsize=9)
+
+        # Set X-axis to show actual times instead of candle numbers
+        if timestamps and timestamps[0] > 0:
+            # Show time labels at regular intervals
+            num_labels = min(8, len(indices))  # Show max 8 time labels
+            step = max(1, len(indices) // num_labels)
+
+            tick_positions = indices[::step]
+            tick_labels = []
+
+            for i in tick_positions:
+                if i < len(timestamps):
+                    ts = timestamps[i]
+                    # Format timestamp as readable time
+                    dt = datetime.fromtimestamp(ts)
+                    # For intraday: show date and time (MM/DD HH:MM)
+                    # For daily: show date only (MM/DD)
+                    if self.current_timeframe in ['M1', 'M5', 'M15', 'M30', 'H1', 'H4']:
+                        label = dt.strftime('%m/%d\n%H:%M')
+                    else:
+                        label = dt.strftime('%m/%d')
+                    tick_labels.append(label)
+
+            self.canvas.axes.set_xticks(tick_positions)
+            self.canvas.axes.set_xticklabels(tick_labels, rotation=0, ha='center')
+
+        # Set title
+        if self.candle_data:
+            current_price = self.candle_data[-1]['close']
+            self.canvas.axes.set_title(
+                f'{self.current_symbol} - {self.current_timeframe} | Price: {current_price:.5f}',
+                color='#F8FAFC',
+                fontsize=12,
+                fontweight='bold',
+                pad=10
+            )
+
+        # Draw institutional overlays (FVG, OB, Liquidity)
+        self.draw_chart_overlays()
+
+        # Draw candlestick patterns
+        self.draw_candlestick_patterns()
+
+        # Adjust layout with proper margins
+        try:
+            self.canvas.fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.08)
+        except:
+            pass  # Ignore layout warnings
+
+        self.canvas.draw()
+
+    def update_last_candle_only(self):
+        """Update only the last (forming) candle with current price"""
+        if not self.candle_data:
+            return
+
+        try:
+            # Get current price from data_manager (EA's live data)
+            price_data = data_manager.get_latest_price()
+            bid = price_data.get('bid')
+            ask = price_data.get('ask')
+
+            # Validate: bid and ask must exist and be positive non-zero values
+            if bid is None or ask is None or bid <= 0 or ask <= 0:
+                return
+
+            mid_price = (bid + ask) / 2
+
+            # Update the last candle (the forming one)
+            last_candle = self.candle_data[-1]
+            last_candle['close'] = mid_price
+            last_candle['high'] = max(last_candle['high'], ask)
+            last_candle['low'] = min(last_candle['low'], bid)
+
+            # Note: We don't change 'open' - it stays as it was when candle started
+
+        except Exception as e:
+            pass
+
+    def draw_candlestick_patterns(self):
+        """Detect and draw candlestick patterns on chart"""
+        if not self.candle_data or len(self.candle_data) < 3:
+            return
+
+        try:
+            # Analyze last 20 candles for patterns
+            num_candles = min(20, len(self.candle_data))
+            start_idx = len(self.candle_data) - num_candles
+
+            for i in range(start_idx, len(self.candle_data)):
+                pattern = self.detect_pattern_at_index(i)
+                if pattern:
+                    # Draw pattern annotation
+                    candle = self.candle_data[i]
+                    y_pos = candle['high'] + (candle['high'] - candle['low']) * 0.3
+
+                    # Color based on pattern type
+                    if 'BULLISH' in pattern or 'HAMMER' in pattern or 'ENGULF' in pattern and i > start_idx:
+                        color = '#10B981'  # Green
+                        marker = '▲'
+                    elif 'BEARISH' in pattern or 'STAR' in pattern:
+                        color = '#EF4444'  # Red
+                        marker = '▼'
+                    else:
+                        color = '#F59E0B'  # Orange
+                        marker = '●'
+
+                    # Add pattern marker
+                    self.canvas.axes.plot(i, y_pos, marker=marker, color=color, markersize=8, zorder=100)
+
+                    # Add pattern label
+                    self.canvas.axes.text(
+                        i, y_pos + (candle['high'] - candle['low']) * 0.2,
+                        pattern,
+                        fontsize=7,
+                        color=color,
+                        weight='bold',
+                        ha='center',
+                        rotation=0,
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.95)
+                    )
+
+        except Exception as e:
+            pass
+
+    def detect_pattern_at_index(self, idx):
+        """Detect candlestick pattern at given index"""
+        if idx < 2 or idx >= len(self.candle_data):
+            return None
+
+        current = self.candle_data[idx]
+        prev1 = self.candle_data[idx - 1]
+        prev2 = self.candle_data[idx - 2] if idx >= 2 else None
+
+        # Calculate candle properties
+        body = abs(current['close'] - current['open'])
+        upper_wick = current['high'] - max(current['open'], current['close'])
+        lower_wick = min(current['open'], current['close']) - current['low']
+        total_range = current['high'] - current['low']
+
+        is_bullish = current['close'] > current['open']
+        is_bearish = current['close'] < current['open']
+
+        # Engulfing patterns
+        if prev1 and body > 0 and total_range > 0:
+            prev_body = abs(prev1['close'] - prev1['open'])
+            if is_bullish and prev1['close'] < prev1['open']:
+                if current['close'] > prev1['open'] and current['open'] < prev1['close']:
+                    if body > prev_body * 1.3:
+                        return "BULLISH ENGULF"
+            elif is_bearish and prev1['close'] > prev1['open']:
+                if current['close'] < prev1['open'] and current['open'] > prev1['close']:
+                    if body > prev_body * 1.3:
+                        return "BEARISH ENGULF"
+
+        # Hammer / Shooting Star
+        if total_range > 0:
+            body_ratio = body / total_range
+            upper_wick_ratio = upper_wick / total_range
+            lower_wick_ratio = lower_wick / total_range
+
+            if body_ratio < 0.3:  # Small body
+                if lower_wick_ratio > 0.6 and upper_wick_ratio < 0.1:
+                    return "HAMMER"
+                elif upper_wick_ratio > 0.6 and lower_wick_ratio < 0.1:
+                    return "SHOOT STAR"
+
+        # Doji
+        if total_range > 0 and body / total_range < 0.1:
+            return "DOJI"
+
+        return None
+
+    def draw_chart_overlays(self):
+        """Draw FVG/OB/Liquidity zones on chart from REAL EA data"""
+        try:
+            # Get zone data from EA via data_manager
+            zones = data_manager.get_zones()
+
+            # Draw FVGs (Fair Value Gaps)
+            fvgs = zones.get('fvgs', [])
+            if fvgs and len(fvgs) > 0:
+                self.draw_fvg_zones(fvgs)
+            else:
+                # Fallback to sample if no real data
+                self.draw_sample_fvg()
+
+            # Draw Order Blocks
+            order_blocks = zones.get('order_blocks', [])
+            if order_blocks and len(order_blocks) > 0:
+                self.draw_order_block_zones(order_blocks)
+            else:
+                # Fallback to sample if no real data
+                self.draw_sample_order_block()
+
+            # Draw Liquidity Zones
+            liquidity = zones.get('liquidity', [])
+            if liquidity and len(liquidity) > 0:
+                self.draw_liquidity_zones(liquidity)
+            else:
+                # Fallback to sample if no real data
+                self.draw_sample_liquidity()
+
+        except Exception as e:
+            pass
+
+    def draw_fvg_zones(self, fvgs: list):
+        """Draw actual FVG zones from EA data"""
+        if not self.candle_data:
+            return
+
+        for fvg in fvgs:
+            # Skip if filled or invalid
+            if fvg.get('filled', False):
+                continue
+
+            top = fvg.get('top')
+            bottom = fvg.get('bottom')
+            is_bullish = fvg.get('is_bullish', True)
+            ever_visited = fvg.get('ever_visited', False)
+
+            if top is None or bottom is None:
+                continue
+
+            # Color: Cyan for bullish FVG, Magenta for bearish FVG
+            # Dimmer if already visited
+            if is_bullish:
+                color = '#06B6D4' if not ever_visited else '#0E7490'
+            else:
+                color = '#D946EF' if not ever_visited else '#A21CAF'
+
+            # Draw FVG rectangle spanning the entire chart width
+            rect = Rectangle(
+                (0, bottom),  # Start at x=0
+                len(self.candle_data),  # Span entire chart width
+                top - bottom,  # Height
+                linewidth=1 if not ever_visited else 0.5,
+                edgecolor=color,
+                facecolor=color,
+                alpha=0.15 if not ever_visited else 0.08,
+                linestyle='--',
+                label='FVG (Bullish)' if is_bullish else 'FVG (Bearish)'
+            )
+            self.canvas.axes.add_patch(rect)
+
+            # Add label on the right side
+            label_text = 'FVG↑' if is_bullish else 'FVG↓'
+            self.canvas.axes.text(
+                len(self.candle_data) - 2,
+                (top + bottom) / 2,
+                label_text,
+                fontsize=7,
+                color=color,
+                weight='bold',
+                ha='right',
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='#0A0E27', edgecolor=color, alpha=0.9)
+            )
+
+    def draw_order_block_zones(self, order_blocks: list):
+        """Draw actual Order Block zones from EA data"""
+        if not self.candle_data:
+            return
+
+        for ob in order_blocks:
+            # Skip if invalidated
+            if ob.get('invalidated', False):
+                continue
+
+            top = ob.get('top')
+            bottom = ob.get('bottom')
+            is_bullish = ob.get('is_bullish', True)
+            test_count = ob.get('test_count', 0)
+            ever_visited = ob.get('ever_visited', False)
+
+            if top is None or bottom is None:
+                continue
+
+            # Color: Yellow for bullish OB, Orange for bearish OB
+            # Dimmer if tested multiple times
+            if is_bullish:
+                color = '#FBBF24' if test_count < 2 else '#D97706'
+            else:
+                color = '#F59E0B' if test_count < 2 else '#C2410C'
+
+            # Draw OB rectangle
+            rect = Rectangle(
+                (0, bottom),
+                len(self.candle_data),
+                top - bottom,
+                linewidth=2 if test_count == 0 else 1,
+                edgecolor=color,
+                facecolor=color,
+                alpha=0.20 if test_count < 2 else 0.12,
+                linestyle='-',
+                label=f'OB ({"Bullish" if is_bullish else "Bearish"})'
+            )
+            self.canvas.axes.add_patch(rect)
+
+            # Add label with test count
+            label_text = f'OB↑ [{test_count}]' if is_bullish else f'OB↓ [{test_count}]'
+            self.canvas.axes.text(
+                len(self.candle_data) - 2,
+                (top + bottom) / 2,
+                label_text,
+                fontsize=7,
+                color=color,
+                weight='bold',
+                ha='right',
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='#0A0E27', edgecolor=color, alpha=0.9)
+            )
+
+    def draw_liquidity_zones(self, liquidity: list):
+        """Draw actual Liquidity zones from EA data"""
+        if not self.candle_data:
+            return
+
+        for liq in liquidity:
+            price = liq.get('price')
+            is_high = liq.get('is_high', True)  # True = resistance, False = support
+            swept = liq.get('swept', False)
+            touch_count = liq.get('touch_count', 0)
+
+            if price is None:
+                continue
+
+            # Color: Red for resistance, Green for support
+            # Dimmer if already swept
+            if is_high:
+                color = '#EF4444' if not swept else '#B91C1C'
+            else:
+                color = '#10B981' if not swept else '#059669'
+
+            # Draw liquidity line
+            self.canvas.axes.axhline(
+                y=price,
+                color=color,
+                linestyle=':' if not swept else '-.',
+                linewidth=2 if not swept else 1,
+                alpha=0.7 if not swept else 0.4,
+                label=f'Liquidity ({"Resistance" if is_high else "Support"})'
+            )
+
+            # Add label
+            label_text = f'LIQ↑ [{touch_count}]' if is_high else f'LIQ↓ [{touch_count}]'
+            if swept:
+                label_text += ' SWEPT'
+
+            self.canvas.axes.text(
+                len(self.candle_data) - 8,
+                price,
+                label_text,
+                fontsize=7,
+                color=color,
+                weight='bold',
+                ha='right',
+                va='center',
+                bbox=dict(boxstyle='round,pad=0.2', facecolor='#0A0E27', edgecolor=color, alpha=0.9)
+            )
+
+    def draw_sample_fvg(self):
+        """Draw Fair Value Gap rectangle (sample)"""
+        if not self.candle_data or len(self.candle_data) < 20:
+            return
+
+        # Sample FVG in middle of chart
+        start_idx = len(self.candle_data) // 3
+        end_idx = start_idx + 5
+        low_price = min([c['low'] for c in self.candle_data[start_idx:end_idx]])
+        high_price = max([c['high'] for c in self.candle_data[start_idx:end_idx]])
+
+        # Draw FVG rectangle (cyan with transparency)
+        rect = Rectangle(
+            (start_idx, low_price),
+            end_idx - start_idx,
+            high_price - low_price,
+            linewidth=2,
+            edgecolor='#06B6D4',
+            facecolor='#06B6D4',
+            alpha=0.15,
+            linestyle='--',
+            label='FVG'
+        )
+        self.canvas.axes.add_patch(rect)
+
+        # Add label
+        self.canvas.axes.text(
+            start_idx + 0.5,
+            high_price,
+            'FVG',
+            fontsize=8,
+            color='#06B6D4',
+            weight='bold',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor='#06B6D4', alpha=0.8)
+        )
+
+    def draw_sample_order_block(self):
+        """Draw Order Block rectangle (sample)"""
+        if not self.candle_data or len(self.candle_data) < 40:
+            return
+
+        # Sample OB in latter part of chart
+        start_idx = len(self.candle_data) // 2
+        end_idx = start_idx + 8
+        low_price = min([c['low'] for c in self.candle_data[start_idx:end_idx]])
+        high_price = max([c['high'] for c in self.candle_data[start_idx:end_idx]])
+
+        # Draw OB rectangle (yellow/orange)
+        color = '#F59E0B'  # Orange for bearish OB
+        rect = Rectangle(
+            (start_idx, low_price),
+            end_idx - start_idx,
+            high_price - low_price,
+            linewidth=2,
+            edgecolor=color,
+            facecolor=color,
+            alpha=0.20,
+            linestyle='-',
+            label='Order Block'
+        )
+        self.canvas.axes.add_patch(rect)
+
+        # Add label
+        self.canvas.axes.text(
+            start_idx + 1,
+            low_price,
+            'OB',
+            fontsize=8,
+            color=color,
+            weight='bold',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.8)
+        )
+
+    def draw_sample_liquidity(self):
+        """Draw Liquidity horizontal lines (sample)"""
+        if not self.candle_data or len(self.candle_data) < 10:
+            return
+
+        # Find a swing high for liquidity
+        highs = [c['high'] for c in self.candle_data]
+        liquidity_price = max(highs[len(highs)//3:len(highs)//2])
+
+        # Draw liquidity line (red)
+        self.canvas.axes.axhline(
+            y=liquidity_price,
+            color='#EF4444',
+            linestyle=':',
+            linewidth=2,
+            alpha=0.7,
+            label='Liquidity'
+        )
+
+        # Add label
+        self.canvas.axes.text(
+            len(self.candle_data) - 5,
+            liquidity_price,
+            'LIQUIDITY',
+            fontsize=8,
+            color='#EF4444',
+            weight='bold',
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor='#EF4444', alpha=0.8)
+        )
+
+    def update_chart(self):
+        """Update chart - reload data from MT5 to show new candles"""
+
+        try:
+            # Skip update if we're currently loading new data (symbol/timeframe change)
+            if self.is_loading:
+                return
+
+            # ALWAYS reload data to get new candles from MT5
+            # This is needed so the chart actually updates with market movement
+            print(f"[Chart] Reloading data at {datetime.now().strftime('%H:%M:%S')}")
+            success = self.load_historical_data()  # CORRECT METHOD NAME
+
+            # CRITICAL: Redraw the chart with new data!
+            if success:
+                self.plot_candlesticks()
+                print(f"[Chart] ✓ Chart redrawn with {len(self.candle_data)} candles")
+            else:
+                print(f"[Chart] ✗ Failed to load data from MT5")
+
+        except Exception as e:
+            print(f"[Chart] Error updating: {e}")
+            self.status_label.setText("Update Error")
+            self.status_label.setStyleSheet(f"""
+                QLabel {{
+                    color: {settings.theme.danger};
+                    font_size: {settings.theme.font_size_sm}px;
+                    background: transparent;
+                }}
+            """)
+
+    def on_timeframe_changed(self, timeframe: str):
+        """Handle timeframe change"""
+
+        # Set loading flag to prevent update_chart from interfering
+        self.is_loading = True
+
+        self.current_timeframe = timeframe
+        self.timeframe_changed.emit(timeframe)
+
+        # Reload historical data for new timeframe
+        if self.mt5_initialized:
+            success = self.load_historical_data(timeframe=timeframe)
+            if not success:
+                # Fallback to live data if historical load fails
+                self.candle_data = []
+                self.get_live_mt5_data()
+        else:
+            # MT5 not available, use live data
+            self.candle_data = []
+            self.get_live_mt5_data()
+
+        self.plot_candlesticks()
+
+        # Clear loading flag - updates can resume
+        self.is_loading = False
+
+    def on_symbol_changed(self, symbol: str):
+        """Handle symbol change - allows viewing any symbol independent of EA"""
+
+        # Set loading flag to prevent update_chart from interfering
+        self.is_loading = True
+
+        self.current_symbol = symbol
+
+        # Reload historical data for new symbol
+        if self.mt5_initialized:
+            success = self.load_historical_data(symbol=symbol)
+            if not success:
+                # Fallback to live data if historical load fails
+                self.candle_data = []
+                self.get_live_mt5_data()
+        else:
+            # MT5 not available, use live data
+            self.candle_data = []
+            self.get_live_mt5_data()
+
+        self.plot_candlesticks()
+
+        # Clear loading flag - updates can resume
+        self.is_loading = False
