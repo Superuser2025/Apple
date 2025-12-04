@@ -9,9 +9,8 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QAction
 from datetime import datetime
 
-from gui.institutional_panel import InstitutionalPanel
+from gui.merged_institutional_panel import MergedInstitutionalPanel
 from gui.chart_panel_matplotlib import ChartPanel  # USE ORIGINAL EXCELLENT CHART!
-from gui.controls_panel import ControlsPanel
 from gui.symbol_manager_dialog import SymbolManagerDialog
 
 # Import existing widgets
@@ -78,21 +77,23 @@ class EnhancedMainWindow(QMainWindow):
         self.scanner_widget.set_mt5_connector(self.mt5_connector)
         main_layout.addWidget(self.scanner_widget)
 
-        # === MAIN CONTENT (NEW 3-COLUMN LAYOUT) ===
+        # === MAIN CONTENT (3-COLUMN LAYOUT) ===
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setHandleWidth(3)  # Make splitter handle visible and draggable
 
-        # LEFT COLUMN: Institutional Panel (NEW!)
-        self.institutional_panel = InstitutionalPanel()
-        self.institutional_panel.setMaximumWidth(450)  # More space - not squashed!
-        self.institutional_panel.setMinimumWidth(400)
+        # LEFT COLUMN: Merged Institutional Panel (Fully Resizable!)
+        self.institutional_panel = MergedInstitutionalPanel()
+        self.institutional_panel.setMinimumWidth(350)  # Minimum width only, user can expand!
 
-        # Connect institutional panel signals
+        # Connect all institutional panel signals
         self.institutional_panel.filter_toggled.connect(self.on_filter_toggled)
         self.institutional_panel.mode_changed.connect(self.on_mode_changed)
+        self.institutional_panel.setting_changed.connect(self.on_setting_changed)
+        self.institutional_panel.order_requested.connect(self.on_order_requested)
 
         splitter.addWidget(self.institutional_panel)
 
-        # CENTER COLUMN: Chart + Controls + Analysis Tabs (ORIGINAL LAYOUT!)
+        # CENTER COLUMN: Chart + Analysis Tabs (No controls panel - merged into left!)
         center_panel = self.create_center_panel()
         splitter.addWidget(center_panel)
 
@@ -100,8 +101,14 @@ class EnhancedMainWindow(QMainWindow):
         right_panel = self.create_right_panel()
         splitter.addWidget(right_panel)
 
-        # Set column widths (25% left, 45% center, 30% right) - More space for left panel!
-        splitter.setSizes([450, 810, 540])
+        # Set initial column widths (user can resize any time!)
+        # Left: 450px, Center: 810px, Right: 540px (totals 1800px)
+        splitter.setSizes([450, 870, 480])
+
+        # Make splitter stretchable
+        splitter.setStretchFactor(0, 1)  # Left can stretch
+        splitter.setStretchFactor(1, 2)  # Center gets more stretch priority
+        splitter.setStretchFactor(2, 1)  # Right can stretch
 
         main_layout.addWidget(splitter)
 
@@ -145,7 +152,7 @@ class EnhancedMainWindow(QMainWindow):
         return layout
 
     def create_center_panel(self) -> QWidget:
-        """Create center panel with ORIGINAL excellent chart + controls + analysis tabs"""
+        """Create center panel with ORIGINAL excellent chart + analysis tabs"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -153,13 +160,7 @@ class EnhancedMainWindow(QMainWindow):
         # === ORIGINAL EXCELLENT CHART (TradingView-style with zones!) ===
         self.chart_panel = ChartPanel()  # The original excellent implementation!
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
-        layout.addWidget(self.chart_panel, 3)  # 60% height
-
-        # === CONTROLS PANEL ===
-        self.controls_panel = ControlsPanel()
-        self.controls_panel.order_requested.connect(self.on_order_requested)
-        self.controls_panel.setting_changed.connect(self.on_setting_changed)
-        layout.addWidget(self.controls_panel, 1)  # 20% height
+        layout.addWidget(self.chart_panel, 2)  # 50% height (more space now!)
 
         # === ANALYSIS TABS ===
         tabs = QTabWidget()
