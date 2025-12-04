@@ -10,7 +10,7 @@ from PyQt6.QtGui import QFont
 from datetime import datetime
 
 from gui.institutional_panel import InstitutionalPanel
-from gui.enhanced_chart_panel import EnhancedChartPanel
+from gui.chart_panel_matplotlib import ChartPanel  # USE ORIGINAL EXCELLENT CHART!
 from gui.controls_panel import ControlsPanel
 
 # Import existing widgets
@@ -56,7 +56,7 @@ class EnhancedMainWindow(QMainWindow):
     def init_ui(self):
         """Initialize the enhanced user interface"""
         self.setWindowTitle("AppleTrader Pro - Institutional Trading Robot v3.0")
-        self.setGeometry(100, 100, 1800, 1000)
+        self.setGeometry(50, 50, 1920, 1080)  # Full HD size for better visibility
 
         # Create central widget
         central_widget = QWidget()
@@ -82,8 +82,8 @@ class EnhancedMainWindow(QMainWindow):
 
         # LEFT COLUMN: Institutional Panel (NEW!)
         self.institutional_panel = InstitutionalPanel()
-        self.institutional_panel.setMaximumWidth(350)
-        self.institutional_panel.setMinimumWidth(300)
+        self.institutional_panel.setMaximumWidth(450)  # More space - not squashed!
+        self.institutional_panel.setMinimumWidth(400)
 
         # Connect institutional panel signals
         self.institutional_panel.filter_toggled.connect(self.on_filter_toggled)
@@ -91,7 +91,7 @@ class EnhancedMainWindow(QMainWindow):
 
         splitter.addWidget(self.institutional_panel)
 
-        # CENTER COLUMN: Enhanced Chart + Analysis Tabs
+        # CENTER COLUMN: Chart + Controls + Analysis Tabs (ORIGINAL LAYOUT!)
         center_panel = self.create_center_panel()
         splitter.addWidget(center_panel)
 
@@ -99,8 +99,8 @@ class EnhancedMainWindow(QMainWindow):
         right_panel = self.create_right_panel()
         splitter.addWidget(right_panel)
 
-        # Set column widths (20% left, 50% center, 30% right)
-        splitter.setSizes([360, 900, 540])
+        # Set column widths (25% left, 45% center, 30% right) - More space for left panel!
+        splitter.setSizes([450, 810, 540])
 
         main_layout.addWidget(splitter)
 
@@ -141,19 +141,23 @@ class EnhancedMainWindow(QMainWindow):
         return layout
 
     def create_center_panel(self) -> QWidget:
-        """Create center panel with enhanced chart and analysis tabs"""
+        """Create center panel with ORIGINAL excellent chart + controls + analysis tabs"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Enhanced Chart (with overlays)
-        self.chart_panel = EnhancedChartPanel()
-        self.chart_panel.symbol_changed.connect(self.on_symbol_changed)
+        # === ORIGINAL EXCELLENT CHART (TradingView-style with zones!) ===
+        self.chart_panel = ChartPanel()  # The original excellent implementation!
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
-
         layout.addWidget(self.chart_panel, 3)  # 60% height
 
-        # Analysis Tabs
+        # === CONTROLS PANEL ===
+        self.controls_panel = ControlsPanel()
+        self.controls_panel.order_requested.connect(self.on_order_requested)
+        self.controls_panel.setting_changed.connect(self.on_setting_changed)
+        layout.addWidget(self.controls_panel, 1)  # 20% height
+
+        # === ANALYSIS TABS ===
         tabs = QTabWidget()
         tabs.setTabPosition(QTabWidget.TabPosition.North)
 
@@ -199,7 +203,7 @@ class EnhancedMainWindow(QMainWindow):
         news_layout.addWidget(self.news_widget)
         tabs.addTab(news_tab, "📰 News")
 
-        layout.addWidget(tabs, 2)  # 40% height
+        layout.addWidget(tabs, 1)  # 20% height
 
         return widget
 
@@ -261,7 +265,11 @@ class EnhancedMainWindow(QMainWindow):
         """Handle symbol change"""
         self.current_symbol = symbol
         self.status_label.setText(f"Symbol changed to: {symbol}")
-        self.orderflow_widget.set_symbol(symbol)
+
+        # Update all widgets with new symbol
+        if hasattr(self, 'orderflow_widget'):
+            self.orderflow_widget.set_symbol(symbol)
+
         self.update_all_data()
 
     def on_timeframe_changed(self, timeframe: str):
@@ -282,6 +290,70 @@ class EnhancedMainWindow(QMainWindow):
         """Handle mode change (AUTO/MANUAL)"""
         self.status_label.setText(f"Trading mode: {mode}")
         print(f"[Main Window] Trading mode changed to {mode}")
+
+    def on_order_requested(self, order_type: str):
+        """Handle quick order button click from controls panel"""
+        print(f"[Main Window] {order_type} order requested")
+        self.status_label.setText(f"{order_type} order requested - sending to MT5...")
+
+        # Send order command to MT5 via command manager
+        from core.command_manager import command_manager
+        try:
+            command_manager.send_order(
+                order_type=order_type,
+                symbol=self.current_symbol,
+                lot_size=0.01  # Default volume
+            )
+            self.status_label.setText(f"✓ {order_type} order sent to MT5 EA")
+            print(f"[Main Window] {order_type} order command sent successfully")
+        except Exception as e:
+            self.status_label.setText(f"✗ Failed to send {order_type} order: {e}")
+            print(f"[Main Window] Error sending order: {e}")
+
+    def on_setting_changed(self, setting_name: str, value):
+        """Handle setting change from controls panel"""
+        print(f"[Main Window] Setting changed: {setting_name} = {value}")
+        self.status_label.setText(f"Setting updated: {setting_name}")
+
+        # Handle update speed changes
+        if setting_name == 'update_speed':
+            # Map speed to milliseconds
+            speed_intervals = {
+                'SLOW': 5000,      # 5 seconds
+                'NORMAL': 2000,    # 2 seconds
+                'FAST': 1000,      # 1 second
+                'REALTIME': 500    # 0.5 seconds
+            }
+
+            interval = speed_intervals.get(value, 1000)
+
+            # Update chart refresh timer
+            if hasattr(self, 'chart_panel') and hasattr(self.chart_panel, 'update_timer'):
+                self.chart_panel.update_timer.stop()
+                self.chart_panel.update_timer.setInterval(interval)
+                self.chart_panel.update_timer.start()
+                print(f"[Main Window] Chart refresh rate changed to {interval}ms ({value})")
+                self.status_label.setText(f"Chart refresh: {interval/1000}s")
+
+                # Force immediate chart reload
+                if hasattr(self.chart_panel, 'load_historical_data'):
+                    success = self.chart_panel.load_historical_data()
+                    if success and hasattr(self.chart_panel, 'plot_candlesticks'):
+                        self.chart_panel.plot_candlesticks()
+                    print(f"[Main Window] Chart reloaded immediately")
+
+            # Update main window timer
+            if hasattr(self, 'data_timer'):
+                self.data_timer.stop()
+                self.data_timer.setInterval(interval)
+                self.data_timer.start()
+                print(f"[Main Window] Data update rate changed to {interval}ms ({value})")
+
+        # Handle filter changes
+        elif setting_name in ['use_fvg_filter', 'use_ob_filter', 'use_liquidity_filter']:
+            if hasattr(self, 'scanner_widget'):
+                # Trigger a rescan with new filters
+                self.scanner_widget.scan_market()
 
     def update_all_data(self):
         """Update all widgets with latest data"""
