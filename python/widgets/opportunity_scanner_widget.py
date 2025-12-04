@@ -4,9 +4,9 @@ Scans all pairs for high-probability trading setups in real-time
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                            QFrame, QScrollArea, QGridLayout, QComboBox)
+                            QFrame, QScrollArea, QGridLayout)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QFont
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import random
@@ -23,8 +23,8 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setFixedHeight(120)  # Reduced height to fit 2 cards nicely
-        self.setFixedWidth(360)   # Slightly smaller width for 3 columns
+        self.setFixedHeight(110)  # Compact height
+        self.setFixedWidth(340)   # Compact width for 3 per group
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -47,7 +47,7 @@ class OpportunityCard(QFrame):
                 background-color: {bg_color};
                 border: 2px solid {border_color};
                 border-radius: 8px;
-                padding: 8px;
+                padding: 6px;
             }}
             OpportunityCard QLabel {{
                 background-color: transparent;
@@ -56,14 +56,14 @@ class OpportunityCard(QFrame):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(5)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(4)
 
         # Header: Symbol + Direction + Score
         header_layout = QHBoxLayout()
 
         symbol_label = QLabel(self.opportunity['symbol'])
-        symbol_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        symbol_label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         symbol_label.setStyleSheet("color: #FFFFFF;")
         header_layout.addWidget(symbol_label)
 
@@ -71,14 +71,14 @@ class OpportunityCard(QFrame):
         dir_color = '#10B981' if direction == 'BUY' else '#EF4444'
         dir_icon = '📈' if direction == 'BUY' else '📉'
         dir_label = QLabel(f"{dir_icon} {direction}")
-        dir_label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+        dir_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         dir_label.setStyleSheet(f"color: {dir_color};")
         header_layout.addWidget(dir_label)
 
         header_layout.addStretch()
 
         score_label = QLabel(f"⭐ {score}")
-        score_label.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+        score_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         score_label.setStyleSheet(f"color: {border_color};")
         header_layout.addWidget(score_label)
 
@@ -86,25 +86,25 @@ class OpportunityCard(QFrame):
 
         # Entry and targets
         entry_layout = QHBoxLayout()
-        entry_layout.setSpacing(12)
+        entry_layout.setSpacing(10)
 
         entry_text = QLabel(f"Entry: {self.opportunity['entry']:.5f}")
-        entry_text.setFont(QFont("Courier", 10))
+        entry_text.setFont(QFont("Courier", 9))
         entry_text.setStyleSheet("color: #94A3B8;")
         entry_layout.addWidget(entry_text)
 
         sl_text = QLabel(f"SL: {self.opportunity['stop_loss']:.5f}")
-        sl_text.setFont(QFont("Courier", 10))
+        sl_text.setFont(QFont("Courier", 9))
         sl_text.setStyleSheet("color: #EF4444;")
         entry_layout.addWidget(sl_text)
 
         tp_text = QLabel(f"TP: {self.opportunity['take_profit']:.5f}")
-        tp_text.setFont(QFont("Courier", 10))
+        tp_text.setFont(QFont("Courier", 9))
         tp_text.setStyleSheet("color: #10B981;")
         entry_layout.addWidget(tp_text)
 
         rr_text = QLabel(f"R:R {self.opportunity['risk_reward']:.1f}")
-        rr_text.setFont(QFont("Courier", 10, QFont.Weight.Bold))
+        rr_text.setFont(QFont("Courier", 9, QFont.Weight.Bold))
         rr_text.setStyleSheet("color: #3B82F6;")
         entry_layout.addWidget(rr_text)
 
@@ -113,80 +113,40 @@ class OpportunityCard(QFrame):
 
         # Confluence reasons
         reasons = self.opportunity.get('confluence_reasons', [])
-        reasons_text = " • ".join(reasons[:3])  # Top 3 reasons
+        reasons_text = " • ".join(reasons[:3])
         reasons_label = QLabel(f"✓ {reasons_text}")
-        reasons_label.setFont(QFont("Arial", 9))
+        reasons_label.setFont(QFont("Arial", 8))
         reasons_label.setStyleSheet("color: #D1D5DB;")
         reasons_label.setWordWrap(True)
         layout.addWidget(reasons_label)
 
         # Timeframe
         tf_label = QLabel(f"⏱ {self.opportunity['timeframe']}")
-        tf_label.setFont(QFont("Arial", 9))
+        tf_label.setFont(QFont("Arial", 8))
         tf_label.setStyleSheet("color: #9CA3AF;")
         layout.addWidget(tf_label)
 
 
-class TimeframeColumn(QWidget):
-    """Column widget for a specific timeframe group"""
+class TimeframeGroup(QWidget):
+    """Group widget for a specific timeframe range - cards flow left to right"""
 
-    def __init__(self, title: str, timeframes: List[str], parent=None):
+    def __init__(self, timeframes: List[str], parent=None):
         super().__init__(parent)
-        self.title = title
         self.timeframes = timeframes
         self.opportunities = []
         self.init_ui()
 
     def init_ui(self):
-        """Initialize the column UI"""
+        """Initialize the group UI"""
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(5)
 
-        # Column header
-        header = QLabel(self.title)
-        header.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setStyleSheet("""
-            QLabel {
-                background-color: #1E3A8A;
-                color: #FFFFFF;
-                border: 2px solid #3B82F6;
-                border-radius: 6px;
-                padding: 8px;
-            }
-        """)
-        layout.addWidget(header)
-
-        # Timeframe badges
-        tf_layout = QHBoxLayout()
-        tf_layout.setSpacing(5)
-        tf_layout.addStretch()
-
-        for tf in self.timeframes:
-            tf_badge = QLabel(tf)
-            tf_badge.setFont(QFont("Arial", 9, QFont.Weight.Bold))
-            tf_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            tf_badge.setFixedWidth(45)
-            tf_badge.setStyleSheet("""
-                QLabel {
-                    background-color: #0F172A;
-                    color: #60A5FA;
-                    border: 1px solid #3B82F6;
-                    border-radius: 4px;
-                    padding: 3px;
-                }
-            """)
-            tf_layout.addWidget(tf_badge)
-
-        tf_layout.addStretch()
-        layout.addLayout(tf_layout)
-
-        # Scroll area for cards
+        # Scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setMinimumHeight(280)  # Height for 2 cards + spacing
+        scroll.setMinimumHeight(240)  # Height for 2 rows of cards
         scroll.setStyleSheet("""
             QScrollArea {
                 background-color: #0F1729;
@@ -196,45 +156,45 @@ class TimeframeColumn(QWidget):
         """)
 
         scroll_content = QWidget()
-        self.cards_layout = QVBoxLayout(scroll_content)
-        self.cards_layout.setSpacing(10)
-        self.cards_layout.setContentsMargins(5, 5, 5, 5)
-        self.cards_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Grid layout - 3 columns, cards flow left-to-right
+        self.grid_layout = QGridLayout(scroll_content)
+        self.grid_layout.setSpacing(8)
+        self.grid_layout.setContentsMargins(5, 5, 5, 5)
+        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll)
 
     def update_opportunities(self, opportunities: List[Dict]):
-        """Update the opportunities displayed in this column"""
+        """Update the opportunities - cards flow left to right in 3-column grid"""
         self.opportunities = opportunities
 
         # Clear existing cards
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # Add new cards
-        for opp in self.opportunities:
+        # Add new cards - left to right, 3 per row
+        for idx, opp in enumerate(self.opportunities):
             card = OpportunityCard(opp)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
-            self.cards_layout.addWidget(card)
+
+            row = idx // 3  # 3 cards per row
+            col = idx % 3   # Column 0, 1, or 2
+
+            self.grid_layout.addWidget(card, row, col)
 
 
 class OpportunityScannerWidget(QWidget):
     """
-    Live Market Opportunity Scanner - 3 Column Layout
+    Live Market Opportunity Scanner - Horizontal Flow Layout
 
-    Features:
-    - Scans all major currency pairs in real-time
-    - Organized by timeframe groups (Low/Mid/High)
-    - Ranks opportunities by quality score
-    - Shows entry, SL, TP, R:R for each
-    - Color-coded by signal strength
-    - Shows WHY each setup is valid
-    - Auto-refreshes every 30 seconds
+    Cards flow left-to-right within each timeframe group.
+    3 groups side-by-side, each showing 3 cards wide x 2+ cards tall.
     """
 
     opportunity_selected = pyqtSignal(dict)
@@ -245,7 +205,7 @@ class OpportunityScannerWidget(QWidget):
 
         self.opportunities = []
 
-        # Expanded symbol list for better coverage
+        # Expanded symbol list
         self.pairs_to_scan = [
             'EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD',
             'NZDUSD', 'USDCHF', 'EURGBP', 'EURJPY', 'GBPJPY',
@@ -256,12 +216,12 @@ class OpportunityScannerWidget(QWidget):
         self.mt5_connector = None
         self.using_real_data = False
 
-        # Signal persistence - keep signals for 5 minutes
+        # Signal persistence
         self.signal_persist_duration = 300  # 5 minutes
 
         self.init_ui()
 
-        # Auto-scan timer (every 30 seconds)
+        # Auto-scan timer
         self.scan_timer = QTimer()
         self.scan_timer.timeout.connect(self.scan_market)
         self.scan_timer.start(30000)
@@ -271,65 +231,65 @@ class OpportunityScannerWidget(QWidget):
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setMinimumHeight(350)
+        self.setMinimumHeight(300)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(8)
 
         # === HEADER ===
         header_layout = QHBoxLayout()
 
         title = QLabel("🎯 Live Market Opportunity Scanner")
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 13, QFont.Weight.Bold))
         title.setStyleSheet("color: #00aaff;")
         header_layout.addWidget(title)
 
         header_layout.addStretch()
 
-        # Scanning status
+        # Status
         self.status_label = QLabel("🟢 SCANNING")
-        self.status_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        self.status_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
         self.status_label.setStyleSheet("color: #10B981;")
         header_layout.addWidget(self.status_label)
 
-        # Persistence info
-        persist_label = QLabel("⏱ Signals persist: 5 min")
-        persist_label.setFont(QFont("Arial", 9))
+        # Persistence
+        persist_label = QLabel("⏱ Signals: 5 min")
+        persist_label.setFont(QFont("Arial", 8))
         persist_label.setStyleSheet("color: #10B981;")
         header_layout.addWidget(persist_label)
 
-        # Last update time
+        # Update time
         self.time_label = QLabel(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
-        self.time_label.setFont(QFont("Arial", 9))
+        self.time_label.setFont(QFont("Arial", 8))
         self.time_label.setStyleSheet("color: #94A3B8;")
         header_layout.addWidget(self.time_label)
 
         layout.addLayout(header_layout)
 
-        # === THREE TIMEFRAME COLUMNS ===
-        columns_layout = QHBoxLayout()
-        columns_layout.setSpacing(10)
+        # === THREE TIMEFRAME GROUPS (NO HEADERS, NO BADGES) ===
+        groups_layout = QHBoxLayout()
+        groups_layout.setSpacing(10)
 
-        # LEFT: Short-term timeframes (M1, M5, M15)
-        self.short_tf_column = TimeframeColumn("📊 SHORT TERM", ['M1', 'M5', 'M15'])
-        columns_layout.addWidget(self.short_tf_column, 1)
+        # Group 1: Short-term (M1, M5, M15)
+        self.short_group = TimeframeGroup(['M1', 'M5', 'M15'])
+        groups_layout.addWidget(self.short_group, 1)
 
-        # MIDDLE: Medium-term timeframes (M30, H1, H2)
-        self.mid_tf_column = TimeframeColumn("📈 MEDIUM TERM", ['M30', 'H1', 'H2'])
-        columns_layout.addWidget(self.mid_tf_column, 1)
+        # Group 2: Medium-term (M30, H1, H2)
+        self.mid_group = TimeframeGroup(['M30', 'H1', 'H2'])
+        groups_layout.addWidget(self.mid_group, 1)
 
-        # RIGHT: Long-term timeframes (H4, H8, D1)
-        self.long_tf_column = TimeframeColumn("📉 LONG TERM", ['H4', 'H8', 'D1'])
-        columns_layout.addWidget(self.long_tf_column, 1)
+        # Group 3: Long-term (H4, H8, D1)
+        self.long_group = TimeframeGroup(['H4', 'H8', 'D1'])
+        groups_layout.addWidget(self.long_group, 1)
 
-        layout.addLayout(columns_layout)
+        layout.addLayout(groups_layout)
 
-        # Apply dark theme
+        # Apply theme
         self.apply_dark_theme()
 
     def apply_dark_theme(self):
-        """Apply dark theme styling"""
+        """Apply dark theme"""
         self.setStyleSheet("""
             OpportunityScannerWidget {
                 background-color: #0A0E27;
@@ -341,7 +301,7 @@ class OpportunityScannerWidget(QWidget):
         """)
 
     def set_mt5_connector(self, mt5_connector):
-        """Set MT5 connector to use real market data"""
+        """Set MT5 connector"""
         self.mt5_connector = mt5_connector
         if not self.using_real_data:
             self.using_real_data = True
@@ -349,12 +309,12 @@ class OpportunityScannerWidget(QWidget):
             self.scan_market()
 
     def scan_market(self):
-        """Scan all pairs for trading opportunities"""
+        """Scan all pairs for opportunities"""
         self.blink_status()
 
         current_time = datetime.now()
 
-        # Filter out expired opportunities
+        # Filter expired
         cutoff_time = current_time - timedelta(seconds=self.signal_persist_duration)
         self.opportunities = [
             opp for opp in self.opportunities
@@ -375,14 +335,14 @@ class OpportunityScannerWidget(QWidget):
             if 'timestamp' not in opp:
                 opp['timestamp'] = current_time
 
-        # Merge with existing (avoid duplicates)
+        # Merge
         existing_keys = {(o['symbol'], o['timeframe']) for o in self.opportunities}
         for opp in new_opportunities:
             key = (opp['symbol'], opp['timeframe'])
             if key not in existing_keys:
                 self.opportunities.append(opp)
 
-        # Sort by quality score
+        # Sort by quality
         self.opportunities.sort(key=lambda x: x['quality_score'], reverse=True)
 
         # Update display
@@ -392,26 +352,24 @@ class OpportunityScannerWidget(QWidget):
         self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
 
     def generate_opportunities(self) -> List[Dict]:
-        """Generate trading opportunities across all timeframes"""
+        """Generate opportunities across all timeframes"""
         opportunities = []
 
-        # Generate opportunities for each timeframe group
         timeframe_groups = {
             'short': ['M1', 'M5', 'M15'],
             'medium': ['M30', 'H1', 'H2'],
             'long': ['H4', 'H8', 'D1']
         }
 
-        # Generate 2-4 opportunities per timeframe group
+        # Generate 3-6 per group
         for group_name, timeframes in timeframe_groups.items():
-            num_opps = random.randint(2, 4)
+            num_opps = random.randint(3, 6)
 
             for _ in range(num_opps):
                 pair = random.choice(self.pairs_to_scan)
                 direction = random.choice(['BUY', 'SELL'])
                 timeframe = random.choice(timeframes)
 
-                # Generate realistic price levels
                 base_price = self.get_base_price(pair)
                 entry = base_price + random.uniform(-0.0020, 0.0020)
 
@@ -422,15 +380,12 @@ class OpportunityScannerWidget(QWidget):
                     stop_loss = entry + random.uniform(0.0015, 0.0030)
                     take_profit = entry - random.uniform(0.0030, 0.0080)
 
-                # Calculate R:R
                 risk = abs(entry - stop_loss)
                 reward = abs(take_profit - entry)
                 rr = reward / risk if risk > 0 else 0
 
-                # Quality score
                 quality_score = random.randint(60, 95)
 
-                # Confluence reasons
                 all_reasons = [
                     'Order Block', 'FVG', 'Liquidity Sweep', 'Structure Break',
                     'Trend Alignment', 'Volume Spike', 'Session Open', 'Key Level',
@@ -456,7 +411,7 @@ class OpportunityScannerWidget(QWidget):
         return opportunities
 
     def get_base_price(self, pair: str) -> float:
-        """Get base price for a currency pair"""
+        """Get base price"""
         base_prices = {
             'EURUSD': 1.16104, 'GBPUSD': 1.31850, 'USDJPY': 149.50,
             'AUDUSD': 0.68500, 'USDCAD': 1.34200, 'NZDUSD': 0.62300,
@@ -469,14 +424,13 @@ class OpportunityScannerWidget(QWidget):
         return base_prices.get(pair, 1.0000)
 
     def scan_real_market_data(self) -> List[Dict]:
-        """Scan real market data from MT5"""
+        """Scan real MT5 data"""
         opportunities = []
 
-        # Scan across all timeframes
         all_timeframes = ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H8', 'D1']
 
-        for pair in self.pairs_to_scan[:8]:  # Scan top 8 pairs
-            for timeframe in random.sample(all_timeframes, 3):  # Random 3 timeframes per pair
+        for pair in self.pairs_to_scan[:8]:
+            for timeframe in random.sample(all_timeframes, 3):
                 df = self.mt5_connector.get_candles(pair, timeframe, 100)
 
                 if df is None or len(df) < 50:
@@ -489,22 +443,19 @@ class OpportunityScannerWidget(QWidget):
         return opportunities
 
     def analyze_opportunity(self, symbol: str, timeframe: str, df) -> Optional[Dict]:
-        """Analyze candle data for a trading opportunity"""
+        """Analyze for opportunity"""
         try:
             current_close = df['close'].iloc[-1]
 
-            # Calculate trend
             if len(df) >= 20:
                 sma_20 = df['close'].tail(20).mean()
                 trend = 'BUY' if current_close > sma_20 else 'SELL'
             else:
                 return None
 
-            # Calculate ATR
             df['hl'] = df['high'] - df['low']
             atr = df['hl'].tail(14).mean()
 
-            # Set entry/SL/TP
             if trend == 'BUY':
                 entry = current_close
                 stop_loss = entry - (atr * 1.5)
@@ -514,12 +465,10 @@ class OpportunityScannerWidget(QWidget):
                 stop_loss = entry + (atr * 1.5)
                 take_profit = entry - (atr * 3.0)
 
-            # Calculate R:R
             risk = abs(entry - stop_loss)
             reward = abs(take_profit - entry)
             rr = reward / risk if risk > 0 else 0
 
-            # Quality score
             quality_score = 60
             reasons = []
 
@@ -555,18 +504,18 @@ class OpportunityScannerWidget(QWidget):
             return None
 
     def update_display(self):
-        """Update all three columns with filtered opportunities"""
-        # Separate opportunities by timeframe group
+        """Update all three groups with filtered opportunities"""
+        # Separate by timeframe
         short_term = [opp for opp in self.opportunities if opp['timeframe'] in ['M1', 'M5', 'M15']]
         medium_term = [opp for opp in self.opportunities if opp['timeframe'] in ['M30', 'H1', 'H2']]
         long_term = [opp for opp in self.opportunities if opp['timeframe'] in ['H4', 'H8', 'D1']]
 
-        # Update each column
-        self.short_tf_column.update_opportunities(short_term[:6])  # Max 6 per column
-        self.mid_tf_column.update_opportunities(medium_term[:6])
-        self.long_tf_column.update_opportunities(long_term[:6])
+        # Update each group (max 9 per group = 3 rows x 3 columns)
+        self.short_group.update_opportunities(short_term[:9])
+        self.mid_group.update_opportunities(medium_term[:9])
+        self.long_group.update_opportunities(long_term[:9])
 
     def blink_status(self):
-        """Blink the scanning status indicator"""
+        """Blink status"""
         self.status_label.setStyleSheet("color: #FFFFFF;")
         QTimer.singleShot(200, lambda: self.status_label.setStyleSheet("color: #10B981;"))
