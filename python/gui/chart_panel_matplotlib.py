@@ -540,6 +540,12 @@ class ChartPanel(QWidget):
         # Draw system status messages (MT5 EA style)
         self.draw_system_status_messages()
 
+        # Draw key chart levels (support/resistance, pivots, PDH/PDL/PDC, sessions)
+        self.draw_support_resistance_levels()
+        self.draw_pivot_points()
+        self.draw_previous_day_levels()
+        self.draw_session_markers()
+
         # Adjust layout with proper margins
         try:
             self.canvas.fig.subplots_adjust(left=0.08, right=0.98, top=0.95, bottom=0.08)
@@ -547,6 +553,343 @@ class ChartPanel(QWidget):
             pass  # Ignore layout warnings
 
         self.canvas.draw()
+
+    def calculate_support_resistance(self):
+        """Calculate support and resistance levels from swing highs/lows"""
+        if not self.candle_data or len(self.candle_data) < 20:
+            return []
+
+        try:
+            levels = []
+            highs = [c['high'] for c in self.candle_data]
+            lows = [c['low'] for c in self.candle_data]
+
+            # Find swing highs (resistance)
+            for i in range(5, len(self.candle_data) - 5):
+                if highs[i] == max(highs[i-5:i+6]):
+                    # Check if this level is unique (not too close to existing)
+                    is_unique = True
+                    for level in levels:
+                        if abs(level['price'] - highs[i]) < (highs[i] * 0.0005):  # 0.05%
+                            is_unique = False
+                            break
+                    if is_unique:
+                        levels.append({'price': highs[i], 'type': 'resistance'})
+
+            # Find swing lows (support)
+            for i in range(5, len(self.candle_data) - 5):
+                if lows[i] == min(lows[i-5:i+6]):
+                    # Check if this level is unique
+                    is_unique = True
+                    for level in levels:
+                        if abs(level['price'] - lows[i]) < (lows[i] * 0.0005):
+                            is_unique = False
+                            break
+                    if is_unique:
+                        levels.append({'price': lows[i], 'type': 'support'})
+
+            # Keep only the 5 most significant levels (closest to current price)
+            if levels:
+                current_price = self.candle_data[-1]['close']
+                levels.sort(key=lambda x: abs(x['price'] - current_price))
+                levels = levels[:5]
+
+            return levels
+
+        except Exception as e:
+            return []
+
+    def draw_support_resistance_levels(self):
+        """Draw support and resistance lines on chart"""
+        if not self.candle_data:
+            return
+
+        try:
+            levels = self.calculate_support_resistance()
+
+            for level in levels:
+                price = level['price']
+                level_type = level['type']
+
+                # Color: Blue for support, Purple for resistance
+                color = '#3B82F6' if level_type == 'support' else '#A855F7'
+
+                # Draw horizontal line
+                self.canvas.axes.axhline(
+                    y=price,
+                    color=color,
+                    linestyle='--',
+                    linewidth=1.5,
+                    alpha=0.6,
+                    zorder=50
+                )
+
+                # Add label
+                label_text = f'{"S" if level_type == "support" else "R"}: {price:.5f}'
+                self.canvas.axes.text(
+                    len(self.candle_data) - 15,
+                    price,
+                    label_text,
+                    fontsize=8,
+                    color=color,
+                    weight='bold',
+                    ha='left',
+                    va='bottom',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.9),
+                    zorder=51
+                )
+
+        except Exception as e:
+            pass
+
+    def calculate_pivot_points(self):
+        """Calculate daily pivot points (PP, S1-S3, R1-R3)"""
+        if not self.mt5_initialized or not self.candle_data:
+            return None
+
+        try:
+            # Get yesterday's daily candle from MT5
+            rates = mt5.copy_rates_from_pos(self.current_symbol, mt5.TIMEFRAME_D1, 1, 1)
+
+            if rates is None or len(rates) == 0:
+                return None
+
+            prev_day = rates[0]
+            high = prev_day['high']
+            low = prev_day['low']
+            close = prev_day['close']
+
+            # Classic Pivot Points formula
+            pp = (high + low + close) / 3
+            r1 = (2 * pp) - low
+            r2 = pp + (high - low)
+            r3 = high + 2 * (pp - low)
+            s1 = (2 * pp) - high
+            s2 = pp - (high - low)
+            s3 = low - 2 * (high - pp)
+
+            return {
+                'PP': pp,
+                'R1': r1, 'R2': r2, 'R3': r3,
+                'S1': s1, 'S2': s2, 'S3': s3
+            }
+
+        except Exception as e:
+            return None
+
+    def draw_pivot_points(self):
+        """Draw pivot point levels on chart"""
+        if not self.candle_data:
+            return
+
+        try:
+            pivots = self.calculate_pivot_points()
+
+            if not pivots:
+                return
+
+            # Draw each pivot level
+            pivot_config = [
+                ('PP', '#FBBF24', '-', 2.0),  # Yellow, solid, thick
+                ('R1', '#EF4444', '--', 1.5),  # Red, dashed
+                ('R2', '#DC2626', '--', 1.5),
+                ('R3', '#B91C1C', ':', 1.0),
+                ('S1', '#10B981', '--', 1.5),  # Green, dashed
+                ('S2', '#059669', '--', 1.5),
+                ('S3', '#047857', ':', 1.0)
+            ]
+
+            for name, color, linestyle, linewidth in pivot_config:
+                price = pivots[name]
+
+                # Draw pivot line
+                self.canvas.axes.axhline(
+                    y=price,
+                    color=color,
+                    linestyle=linestyle,
+                    linewidth=linewidth,
+                    alpha=0.7,
+                    zorder=45
+                )
+
+                # Add label
+                self.canvas.axes.text(
+                    2,  # Left side
+                    price,
+                    f'{name}: {price:.5f}',
+                    fontsize=8,
+                    color=color,
+                    weight='bold',
+                    ha='left',
+                    va='center',
+                    bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.9),
+                    zorder=46
+                )
+
+        except Exception as e:
+            pass
+
+    def draw_previous_day_levels(self):
+        """Draw previous day High, Low, Close markers"""
+        if not self.mt5_initialized or not self.candle_data:
+            return
+
+        try:
+            # Get yesterday's daily candle
+            rates = mt5.copy_rates_from_pos(self.current_symbol, mt5.TIMEFRAME_D1, 1, 1)
+
+            if rates is None or len(rates) == 0:
+                return
+
+            prev_day = rates[0]
+            pdh = prev_day['high']
+            pdl = prev_day['low']
+            pdc = prev_day['close']
+
+            # Draw PDH (Previous Day High) - Red
+            self.canvas.axes.axhline(
+                y=pdh,
+                color='#F87171',
+                linestyle='-.',
+                linewidth=2,
+                alpha=0.7,
+                zorder=48
+            )
+            self.canvas.axes.text(
+                len(self.candle_data) // 2,
+                pdh,
+                f'PDH: {pdh:.5f}',
+                fontsize=9,
+                color='#F87171',
+                weight='bold',
+                ha='center',
+                va='bottom',
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#F87171', alpha=0.9, linewidth=2),
+                zorder=49
+            )
+
+            # Draw PDL (Previous Day Low) - Green
+            self.canvas.axes.axhline(
+                y=pdl,
+                color='#34D399',
+                linestyle='-.',
+                linewidth=2,
+                alpha=0.7,
+                zorder=48
+            )
+            self.canvas.axes.text(
+                len(self.candle_data) // 2,
+                pdl,
+                f'PDL: {pdl:.5f}',
+                fontsize=9,
+                color='#34D399',
+                weight='bold',
+                ha='center',
+                va='top',
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#34D399', alpha=0.9, linewidth=2),
+                zorder=49
+            )
+
+            # Draw PDC (Previous Day Close) - Yellow
+            self.canvas.axes.axhline(
+                y=pdc,
+                color='#FCD34D',
+                linestyle='-.',
+                linewidth=2,
+                alpha=0.7,
+                zorder=48
+            )
+            self.canvas.axes.text(
+                len(self.candle_data) // 2 + 10,
+                pdc,
+                f'PDC: {pdc:.5f}',
+                fontsize=9,
+                color='#FCD34D',
+                weight='bold',
+                ha='center',
+                va='center',
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#FCD34D', alpha=0.9, linewidth=2),
+                zorder=49
+            )
+
+        except Exception as e:
+            pass
+
+    def draw_session_markers(self):
+        """Draw London and NY session open markers (vertical lines)"""
+        if not self.candle_data:
+            return
+
+        try:
+            # Only draw session markers on intraday timeframes
+            if self.current_timeframe not in ['M1', 'M5', 'M15', 'M30', 'H1', 'H4']:
+                return
+
+            # Get chart limits
+            ylim = self.canvas.axes.get_ylim()
+
+            # Find candles that correspond to London (08:00 GMT) and NY (13:00 GMT) opens
+            for i, candle in enumerate(self.candle_data):
+                timestamp = candle.get('timestamp', 0)
+                if timestamp == 0:
+                    continue
+
+                dt = datetime.fromtimestamp(timestamp)
+                hour = dt.hour
+                minute = dt.minute
+
+                # London Open (08:00 GMT) - Blue vertical line
+                if hour == 8 and minute == 0:
+                    self.canvas.axes.axvline(
+                        x=i,
+                        color='#60A5FA',
+                        linestyle='--',
+                        linewidth=1.5,
+                        alpha=0.5,
+                        zorder=40
+                    )
+                    # Label
+                    self.canvas.axes.text(
+                        i,
+                        ylim[1] - (ylim[1] - ylim[0]) * 0.02,
+                        'London Open',
+                        fontsize=8,
+                        color='#60A5FA',
+                        weight='bold',
+                        ha='center',
+                        va='top',
+                        rotation=90,
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor='#60A5FA', alpha=0.8),
+                        zorder=41
+                    )
+
+                # NY Open (13:00 GMT) - Orange vertical line
+                if hour == 13 and minute == 0:
+                    self.canvas.axes.axvline(
+                        x=i,
+                        color='#FB923C',
+                        linestyle='--',
+                        linewidth=1.5,
+                        alpha=0.5,
+                        zorder=40
+                    )
+                    # Label
+                    self.canvas.axes.text(
+                        i,
+                        ylim[1] - (ylim[1] - ylim[0]) * 0.02,
+                        'NY Open',
+                        fontsize=8,
+                        color='#FB923C',
+                        weight='bold',
+                        ha='center',
+                        va='top',
+                        rotation=90,
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor='#FB923C', alpha=0.8),
+                        zorder=41
+                    )
+
+        except Exception as e:
+            pass
 
     def update_last_candle_only(self):
         """Update only the last (forming) candle with current price"""
