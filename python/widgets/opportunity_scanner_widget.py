@@ -23,8 +23,8 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setFixedHeight(110)
-        self.setFixedWidth(280)  # Set fixed width for consistency
+        self.setFixedHeight(140)  # Increased from 110 to 140
+        self.setFixedWidth(320)  # Increased from 280 to 320
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -47,7 +47,7 @@ class OpportunityCard(QFrame):
                 background-color: {bg_color};
                 border: 2px solid {border_color};
                 border-radius: 8px;
-                padding: 8px;
+                padding: 10px;
             }}
             OpportunityCard QLabel {{
                 background-color: transparent;
@@ -56,14 +56,14 @@ class OpportunityCard(QFrame):
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(4)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(6)
 
         # Header: Symbol + Direction + Score
         header_layout = QHBoxLayout()
 
         symbol_label = QLabel(self.opportunity['symbol'])
-        symbol_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        symbol_label.setFont(QFont("Arial", 15, QFont.Weight.Bold))  # Increased from 12 to 15
         symbol_label.setStyleSheet("color: #FFFFFF;")
         header_layout.addWidget(symbol_label)
 
@@ -71,14 +71,14 @@ class OpportunityCard(QFrame):
         dir_color = '#10B981' if direction == 'BUY' else '#EF4444'
         dir_icon = '📈' if direction == 'BUY' else '📉'
         dir_label = QLabel(f"{dir_icon} {direction}")
-        dir_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        dir_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))  # Increased from 11 to 14
         dir_label.setStyleSheet(f"color: {dir_color};")
         header_layout.addWidget(dir_label)
 
         header_layout.addStretch()
 
         score_label = QLabel(f"⭐ {score}")
-        score_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        score_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))  # Increased from 11 to 14
         score_label.setStyleSheet(f"color: {border_color};")
         header_layout.addWidget(score_label)
 
@@ -89,22 +89,22 @@ class OpportunityCard(QFrame):
         entry_layout.setSpacing(15)
 
         entry_text = QLabel(f"Entry: {self.opportunity['entry']:.5f}")
-        entry_text.setFont(QFont("Courier", 9))
+        entry_text.setFont(QFont("Courier", 11))  # Increased from 9 to 11
         entry_text.setStyleSheet("color: #94A3B8;")
         entry_layout.addWidget(entry_text)
 
         sl_text = QLabel(f"SL: {self.opportunity['stop_loss']:.5f}")
-        sl_text.setFont(QFont("Courier", 9))
+        sl_text.setFont(QFont("Courier", 11))  # Increased from 9 to 11
         sl_text.setStyleSheet("color: #EF4444;")
         entry_layout.addWidget(sl_text)
 
         tp_text = QLabel(f"TP: {self.opportunity['take_profit']:.5f}")
-        tp_text.setFont(QFont("Courier", 9))
+        tp_text.setFont(QFont("Courier", 11))  # Increased from 9 to 11
         tp_text.setStyleSheet("color: #10B981;")
         entry_layout.addWidget(tp_text)
 
         rr_text = QLabel(f"R:R {self.opportunity['risk_reward']:.1f}")
-        rr_text.setFont(QFont("Courier", 9, QFont.Weight.Bold))
+        rr_text.setFont(QFont("Courier", 11, QFont.Weight.Bold))  # Increased from 9 to 11
         rr_text.setStyleSheet("color: #3B82F6;")
         entry_layout.addWidget(rr_text)
 
@@ -115,14 +115,14 @@ class OpportunityCard(QFrame):
         reasons = self.opportunity.get('confluence_reasons', [])
         reasons_text = " • ".join(reasons[:3])  # Top 3 reasons
         reasons_label = QLabel(f"✓ {reasons_text}")
-        reasons_label.setFont(QFont("Arial", 8))
+        reasons_label.setFont(QFont("Arial", 10))  # Increased from 8 to 10
         reasons_label.setStyleSheet("color: #D1D5DB;")
         reasons_label.setWordWrap(True)
         layout.addWidget(reasons_label)
 
         # Timeframe
         tf_label = QLabel(f"⏱ {self.opportunity['timeframe']}")
-        tf_label.setFont(QFont("Arial", 8))
+        tf_label.setFont(QFont("Arial", 10))  # Increased from 8 to 10
         tf_label.setStyleSheet("color: #9CA3AF;")
         layout.addWidget(tf_label)
 
@@ -166,8 +166,8 @@ class OpportunityScannerWidget(QWidget):
 
     def init_ui(self):
         """Initialize the user interface"""
-        # Set minimum size for the widget
-        self.setMinimumHeight(200)
+        # Set minimum size for the widget (increased to fit larger cards)
+        self.setMinimumHeight(250)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
@@ -177,7 +177,7 @@ class OpportunityScannerWidget(QWidget):
         header_layout = QHBoxLayout()
 
         title = QLabel("🎯 Live Market Opportunity Scanner")
-        title.setFont(QFont("Arial", 13, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))  # Increased from 13 to 14
         title.setStyleSheet("color: #00aaff;")
         header_layout.addWidget(title)
 
@@ -218,7 +218,7 @@ class OpportunityScannerWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setMinimumHeight(140)  # Ensure minimum height for displaying cards
+        scroll.setMinimumHeight(180)  # Increased from 140 to 180 for larger cards
         scroll.setObjectName("OpportunityScrollArea")
         scroll.setStyleSheet("""
             QScrollArea#OpportunityScrollArea {
