@@ -43,7 +43,7 @@ class MergedInstitutionalPanel(QWidget):
 
         # === TITLE ===
         title = QLabel("INSTITUTIONAL TRADING ROBOT v3.0")
-        title.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        title.setFont(QFont("Arial", 15, QFont.Weight.Bold))  # Increased from 11 to 15
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("color: #00ff00; background-color: #1a1a1a; padding: 8px; border-radius: 5px;")
         layout.addWidget(title)
@@ -112,12 +112,14 @@ class MergedInstitutionalPanel(QWidget):
                 margin-top: 10px;
                 padding-top: 15px;
                 font-weight: bold;
+                font-size: 15px;
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 5px 10px;
                 color: #00ff00;
+                font-size: 15px;
             }
         """)
 
@@ -135,7 +137,7 @@ class MergedInstitutionalPanel(QWidget):
                 border: 1px solid #00ff00;
                 border-radius: 3px;
                 color: #00ff00;
-                font-size: 10px;
+                font-size: 14px;
                 font-family: 'Courier New', monospace;
                 padding: 4px;
             }
@@ -157,13 +159,13 @@ class MergedInstitutionalPanel(QWidget):
         self.mode_toggle = QPushButton("MODE: AUTO TRADING")
         self.mode_toggle.setCheckable(True)
         self.mode_toggle.setChecked(True)
-        self.mode_toggle.setFixedHeight(45)
+        self.mode_toggle.setFixedHeight(55)  # Increased from 45 to 55
         self.mode_toggle.setStyleSheet("""
             QPushButton {
                 background-color: #00aa00;
                 color: white;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 16px;
                 border-radius: 5px;
                 padding: 8px;
             }
@@ -177,18 +179,18 @@ class MergedInstitutionalPanel(QWidget):
 
         # AI System Status
         ai_label = QLabel("AI: SYSTEM ENABLED - ML Active")
-        ai_label.setStyleSheet("color: #00aaff; padding: 5px; font-size: 10px;")
+        ai_label.setStyleSheet("color: #00aaff; padding: 5px; font-size: 14px;")
         ai_label.setWordWrap(True)
         layout.addWidget(ai_label)
 
         # ML System Enable
         ml_layout = QHBoxLayout()
         ml_label = QLabel("ML System:")
-        ml_label.setStyleSheet("color: #ffffff; font-size: 10px;")
+        ml_label.setStyleSheet("color: #ffffff; font-size: 14px;")
         self.ml_toggle = QPushButton("ON")
         self.ml_toggle.setCheckable(True)
         self.ml_toggle.setChecked(True)
-        self.ml_toggle.setFixedWidth(60)
+        self.ml_toggle.setFixedWidth(80)  # Increased from 60 to 80
         self.ml_toggle.setStyleSheet("""
             QPushButton {
                 background-color: #00aa00;
@@ -196,7 +198,7 @@ class MergedInstitutionalPanel(QWidget):
                 font-weight: bold;
                 border-radius: 3px;
                 padding: 5px;
-                font-size: 10px;
+                font-size: 14px;
             }
         """)
         ml_layout.addWidget(ml_label)
@@ -214,14 +216,14 @@ class MergedInstitutionalPanel(QWidget):
 
         # Buy button
         buy_btn = QPushButton("📈 BUY")
-        buy_btn.setFixedHeight(40)
+        buy_btn.setFixedHeight(50)  # Increased from 40 to 50
         buy_btn.setStyleSheet("""
             QPushButton {
                 background-color: #00aa00;
                 color: white;
                 font-weight: bold;
                 border-radius: 5px;
-                font-size: 12px;
+                font-size: 16px;
             }
             QPushButton:hover {
                 background-color: #00cc00;
@@ -232,14 +234,14 @@ class MergedInstitutionalPanel(QWidget):
 
         # Sell button
         sell_btn = QPushButton("📉 SELL")
-        sell_btn.setFixedHeight(40)
+        sell_btn.setFixedHeight(50)  # Increased from 40 to 50
         sell_btn.setStyleSheet("""
             QPushButton {
                 background-color: #aa0000;
                 color: white;
                 font-weight: bold;
                 border-radius: 5px;
-                font-size: 12px;
+                font-size: 16px;
             }
             QPushButton:hover {
                 background-color: #cc0000;
@@ -265,8 +267,9 @@ class MergedInstitutionalPanel(QWidget):
                 color: white;
                 border: 1px solid #00ff00;
                 border-radius: 3px;
-                padding: 5px;
-                font-size: 10px;
+                padding: 8px;
+                font-size: 14px;
+                min-height: 30px;
             }
         """)
         self.speed_combo.currentTextChanged.connect(self.on_speed_changed)
@@ -283,7 +286,7 @@ class MergedInstitutionalPanel(QWidget):
         # Risk %
         risk_layout = QHBoxLayout()
         risk_label = QLabel("Risk %:")
-        risk_label.setStyleSheet("color: #ffffff; font-size: 10px;")
+        risk_label.setStyleSheet("color: #ffffff; font-size: 14px;")
         self.risk_spin = QDoubleSpinBox()
         self.risk_spin.setRange(0.1, 5.0)
         self.risk_spin.setValue(1.0)
@@ -294,8 +297,9 @@ class MergedInstitutionalPanel(QWidget):
                 color: white;
                 border: 1px solid #00ff00;
                 border-radius: 3px;
-                padding: 3px;
-                font-size: 10px;
+                padding: 6px;
+                font-size: 14px;
+                min-height: 30px;
             }
         """)
         risk_layout.addWidget(risk_label)
@@ -340,12 +344,12 @@ class MergedInstitutionalPanel(QWidget):
         # Checkbox
         checkbox = QCheckBox(name)
         checkbox.setChecked(enabled)
-        checkbox.setStyleSheet("color: #ffffff; font-size: 10px;")
+        checkbox.setStyleSheet("color: #ffffff; font-size: 14px;")
         checkbox.stateChanged.connect(lambda state: self.on_filter_toggled(name, state == Qt.CheckState.Checked.value))
 
         # Status indicator
         status = QLabel("ON" if enabled else "OFF")
-        status.setFixedWidth(35)
+        status.setFixedWidth(50)  # Increased from 35 to 50
         status.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status.setStyleSheet(f"""
             background-color: {'#00aa00' if enabled else '#aa0000'};
@@ -353,7 +357,7 @@ class MergedInstitutionalPanel(QWidget):
             font-weight: bold;
             border-radius: 3px;
             padding: 2px;
-            font-size: 9px;
+            font-size: 13px;
         """)
 
         layout.addWidget(checkbox)
@@ -423,7 +427,7 @@ class MergedInstitutionalPanel(QWidget):
         for visual in visuals:
             checkbox = QCheckBox(visual)
             checkbox.setChecked(True)
-            checkbox.setStyleSheet("color: #ffffff; font-size: 10px;")
+            checkbox.setStyleSheet("color: #ffffff; font-size: 14px;")
             checkbox.stateChanged.connect(lambda state, v=visual: self.on_visual_toggled(v, state == Qt.CheckState.Checked.value))
             layout.addWidget(checkbox)
 
@@ -451,7 +455,7 @@ class MergedInstitutionalPanel(QWidget):
             color_box.setStyleSheet(f"background-color: {color}; border: 1px solid #ffffff; border-radius: 2px;")
 
             label = QLabel(zone_name)
-            label.setStyleSheet("color: #ffffff; font-size: 10px;")
+            label.setStyleSheet("color: #ffffff; font-size: 14px;")
 
             zone_layout.addWidget(color_box)
             zone_layout.addWidget(label)
@@ -468,7 +472,7 @@ class MergedInstitutionalPanel(QWidget):
         layout = QVBoxLayout()
 
         self.market_status_label = QLabel("Analyzing market...")
-        self.market_status_label.setStyleSheet("color: #ffffff; padding: 5px; font-size: 10px;")
+        self.market_status_label.setStyleSheet("color: #ffffff; padding: 5px; font-size: 14px;")
         self.market_status_label.setWordWrap(True)
         layout.addWidget(self.market_status_label)
 
@@ -481,19 +485,19 @@ class MergedInstitutionalPanel(QWidget):
         layout = QVBoxLayout()
 
         self.session_label = QLabel("Session: LONDON")
-        self.session_label.setStyleSheet("color: #00aaff; font-size: 10px;")
+        self.session_label.setStyleSheet("color: #00aaff; font-size: 14px;")
         layout.addWidget(self.session_label)
 
         self.tf_label = QLabel("Timeframe: H4/H1")
-        self.tf_label.setStyleSheet("color: #00aaff; font-size: 10px;")
+        self.tf_label.setStyleSheet("color: #00aaff; font-size: 14px;")
         layout.addWidget(self.tf_label)
 
         self.trend_label = QLabel("Trend: BULLISH")
-        self.trend_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 10px;")
+        self.trend_label.setStyleSheet("color: #00ff00; font-weight: bold; font-size: 14px;")
         layout.addWidget(self.trend_label)
 
         self.structure_label = QLabel("Structure: HH forming")
-        self.structure_label.setStyleSheet("color: #ffffff; font-size: 10px;")
+        self.structure_label.setStyleSheet("color: #ffffff; font-size: 14px;")
         layout.addWidget(self.structure_label)
 
         group.setLayout(layout)
@@ -505,7 +509,7 @@ class MergedInstitutionalPanel(QWidget):
         layout = QVBoxLayout()
 
         self.risk_label = QLabel("Account Risk: 2.0%\nDrawdown: 5.2%\nWin Rate: 68%")
-        self.risk_label.setStyleSheet("color: #ffaa00; padding: 5px; font-size: 10px;")
+        self.risk_label.setStyleSheet("color: #ffaa00; padding: 5px; font-size: 14px;")
         self.risk_label.setWordWrap(True)
         layout.addWidget(self.risk_label)
 
@@ -518,7 +522,7 @@ class MergedInstitutionalPanel(QWidget):
         layout = QVBoxLayout()
 
         self.performance_label = QLabel("Today: +2.3%\nWeek: +8.7%\nMonth: +15.2%")
-        self.performance_label.setStyleSheet("color: #00ff00; padding: 5px; font-weight: bold; font-size: 10px;")
+        self.performance_label.setStyleSheet("color: #00ff00; padding: 5px; font-weight: bold; font-size: 14px;")
         self.performance_label.setWordWrap(True)
         layout.addWidget(self.performance_label)
 
@@ -559,7 +563,7 @@ class MergedInstitutionalPanel(QWidget):
                 font-weight: bold;
                 border-radius: 3px;
                 padding: 2px;
-                font-size: 9px;
+                font-size: 13px;
             """)
 
         self.filter_toggled.emit(name, enabled)
@@ -584,7 +588,7 @@ class MergedInstitutionalPanel(QWidget):
         self.session_label.setText(f"Session: {session}")
         self.tf_label.setText(f"Timeframe: {timeframe}")
         self.trend_label.setText(f"Trend: {trend}")
-        self.trend_label.setStyleSheet(f"color: {'#00ff00' if 'BULL' in trend.upper() else '#ff0000'}; font-weight: bold; font-size: 10px;")
+        self.trend_label.setStyleSheet(f"color: {'#00ff00' if 'BULL' in trend.upper() else '#ff0000'}; font-weight: bold; font-size: 14px;")
         self.structure_label.setText(f"Structure: {structure}")
 
     def update_risk_metrics(self, account_risk: float, drawdown: float, win_rate: float):
@@ -603,4 +607,4 @@ class MergedInstitutionalPanel(QWidget):
             f"Month: {month:+.1f}%"
         )
         color = "#00ff00" if today >= 0 else "#ff0000"
-        self.performance_label.setStyleSheet(f"color: {color}; padding: 5px; font-weight: bold; font-size: 10px;")
+        self.performance_label.setStyleSheet(f"color: {color}; padding: 5px; font-weight: bold; font-size: 14px;")
