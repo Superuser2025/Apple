@@ -23,8 +23,8 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setFixedHeight(110)  # Compact height
-        self.setFixedWidth(340)   # Compact width for 3 per group
+        self.setFixedHeight(105)  # Compact height for better stacking
+        self.setFixedWidth(250)   # Width for 4 per row
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -146,7 +146,7 @@ class TimeframeGroup(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setMinimumHeight(240)  # Height for 2 rows of cards
+        scroll.setMinimumHeight(330)  # Height for 3 rows of cards (12 cards / 4 per row = 3 rows)
         scroll.setStyleSheet("""
             QScrollArea {
                 background-color: #0F1729;
@@ -157,17 +157,17 @@ class TimeframeGroup(QWidget):
 
         scroll_content = QWidget()
 
-        # Grid layout - 3 columns, cards flow left-to-right
+        # Grid layout - 4 columns, cards flow left-to-right
         self.grid_layout = QGridLayout(scroll_content)
-        self.grid_layout.setSpacing(8)
-        self.grid_layout.setContentsMargins(5, 5, 5, 5)
+        self.grid_layout.setSpacing(6)
+        self.grid_layout.setContentsMargins(3, 3, 3, 3)
         self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll)
 
     def update_opportunities(self, opportunities: List[Dict]):
-        """Update the opportunities - cards flow left to right in 3-column grid"""
+        """Update the opportunities - cards flow left to right in 4-column grid"""
         self.opportunities = opportunities
 
         # Clear existing cards
@@ -178,13 +178,13 @@ class TimeframeGroup(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # Add new cards - left to right, 3 per row
+        # Add new cards - left to right, 4 per row
         for idx, opp in enumerate(self.opportunities):
             card = OpportunityCard(opp)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            row = idx // 3  # 3 cards per row
-            col = idx % 3   # Column 0, 1, or 2
+            row = idx // 4  # 4 cards per row
+            col = idx % 4   # Column 0, 1, 2, or 3
 
             self.grid_layout.addWidget(card, row, col)
 
@@ -361,9 +361,9 @@ class OpportunityScannerWidget(QWidget):
             'long': ['H4', 'H8', 'D1']
         }
 
-        # Generate 3-6 per group
+        # Generate 4-8 per group (to fill 4 cards per row properly)
         for group_name, timeframes in timeframe_groups.items():
-            num_opps = random.randint(3, 6)
+            num_opps = random.randint(4, 8)
 
             for _ in range(num_opps):
                 pair = random.choice(self.pairs_to_scan)
@@ -510,10 +510,10 @@ class OpportunityScannerWidget(QWidget):
         medium_term = [opp for opp in self.opportunities if opp['timeframe'] in ['M30', 'H1', 'H2']]
         long_term = [opp for opp in self.opportunities if opp['timeframe'] in ['H4', 'H8', 'D1']]
 
-        # Update each group (max 9 per group = 3 rows x 3 columns)
-        self.short_group.update_opportunities(short_term[:9])
-        self.mid_group.update_opportunities(medium_term[:9])
-        self.long_group.update_opportunities(long_term[:9])
+        # Update each group (max 12 per group = 3 rows x 4 columns)
+        self.short_group.update_opportunities(short_term[:12])
+        self.mid_group.update_opportunities(medium_term[:12])
+        self.long_group.update_opportunities(long_term[:12])
 
     def blink_status(self):
         """Blink status"""
