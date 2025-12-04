@@ -243,6 +243,59 @@ class ChartPanel(QWidget):
         """)
         layout.addWidget(self.timeframe_combo)
 
+        layout.addSpacing(20)
+
+        # Update Speed selector
+        speed_label = QLabel("Update Speed:")
+        speed_label.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.text_secondary};
+                font-size: {settings.theme.font_size_md}px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        layout.addWidget(speed_label)
+
+        self.speed_combo = QComboBox()
+        self.speed_combo.addItems(['SLOW (5s)', 'NORMAL (2s)', 'FAST (1s)', 'REALTIME (500ms)'])
+        self.speed_combo.setCurrentIndex(2)  # Default to FAST
+        self.speed_combo.setStyleSheet(f"""
+            QComboBox {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+                padding: 8px 12px;
+                padding-right: 30px;
+                min-width: 120px;
+                font-size: {settings.theme.font_size_md}px;
+                font-weight: 600;
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                width: 20px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 6px solid {settings.theme.text_secondary};
+                margin-right: 5px;
+            }}
+            QComboBox:hover {{
+                border-color: {settings.theme.accent};
+            }}
+            QComboBox QAbstractItemView {{
+                background-color: {settings.theme.surface_light};
+                color: {settings.theme.text_primary};
+                selection-background-color: {settings.theme.accent};
+                border: 1px solid {settings.theme.border_color};
+                border-radius: 6px;
+            }}
+        """)
+        layout.addWidget(self.speed_combo)
+
         layout.addStretch()
 
         # Status label
@@ -733,17 +786,19 @@ class ChartPanel(QWidget):
             else:
                 structure = "Consolidation phase"
 
-            # Add symbol and timeframe header
+            # Add symbol and timeframe header - BOTTOM LEFT
             commentaries.append({
                 'text': f'📊 {self.current_symbol} | {self.current_timeframe}',
                 'color': '#00aaff',
-                'position': 0.05  # 5% from bottom - shows symbol+TF
+                'x_position': 0.02,  # 2% from left
+                'y_position': 0.05  # 5% from bottom
             })
 
             commentaries.append({
                 'text': f'Trend: {trend}\n{structure}',
                 'color': trend_color,
-                'position': 0.18  # 18% from bottom
+                'x_position': 0.02,
+                'y_position': 0.15  # 15% from bottom
             })
 
             # Add momentum commentary
@@ -751,7 +806,8 @@ class ChartPanel(QWidget):
             commentaries.append({
                 'text': momentum_text,
                 'color': '#3B82F6',
-                'position': 0.33  # 33% from bottom
+                'x_position': 0.02,
+                'y_position': 0.25  # 25% from bottom
             })
 
             # Add pattern-specific commentary if patterns detected
@@ -760,14 +816,14 @@ class ChartPanel(QWidget):
                 commentaries.append({
                     'text': pattern_text,
                     'color': '#F59E0B',
-                    'position': 0.48  # 48% from bottom
+                    'x_position': 0.02,
+                    'y_position': 0.35  # 35% from bottom
                 })
 
-            # Draw commentary boxes
+            # Draw commentary boxes - positioned in BOTTOM LEFT to avoid zone overlaps
             for i, commentary in enumerate(commentaries):
-                # Position in middle-right area of chart
-                box_x = xlim[0] + (xlim[1] - xlim[0]) * 0.60
-                box_y = ylim[0] + (ylim[1] - ylim[0]) * commentary['position']
+                box_x = xlim[0] + (xlim[1] - xlim[0]) * commentary['x_position']
+                box_y = ylim[0] + (ylim[1] - ylim[0]) * commentary['y_position']
 
                 # Draw commentary box
                 self.canvas.axes.text(
@@ -837,16 +893,17 @@ class ChartPanel(QWidget):
                         'position': 'middle'
                     })
 
-            # Draw messages
+            # Draw messages - positioned at TOP CENTER and BOTTOM CENTER
             for i, message in enumerate(messages):
                 if message['position'] == 'top':
-                    msg_y = ylim[1] - (ylim[1] - ylim[0]) * 0.15
+                    msg_y = ylim[1] - (ylim[1] - ylim[0]) * 0.08  # Closer to top edge
+                    msg_x = xlim[0] + (xlim[1] - xlim[0]) * 0.50  # Center
                 elif message['position'] == 'middle':
-                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.85
+                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.50  # True middle
+                    msg_x = xlim[0] + (xlim[1] - xlim[0]) * 0.75  # Right side
                 else:
-                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.10
-
-                msg_x = xlim[0] + (xlim[1] - xlim[0]) * 0.35
+                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.08  # Bottom
+                    msg_x = xlim[0] + (xlim[1] - xlim[0]) * 0.50  # Center
 
                 # Draw message box
                 self.canvas.axes.text(

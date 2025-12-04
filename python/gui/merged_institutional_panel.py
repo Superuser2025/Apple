@@ -57,9 +57,6 @@ class MergedInstitutionalPanel(QWidget):
         # === QUICK ORDER BUTTONS ===
         layout.addWidget(self.create_quick_orders_section())
 
-        # === UPDATE SPEED ===
-        layout.addWidget(self.create_update_speed_section())
-
         # === RISK MANAGEMENT ===
         layout.addWidget(self.create_risk_management_section())
 
@@ -249,31 +246,6 @@ class MergedInstitutionalPanel(QWidget):
         """)
         sell_btn.clicked.connect(lambda: self.order_requested.emit("SELL"))
         layout.addWidget(sell_btn)
-
-        group.setLayout(layout)
-        return group
-
-    def create_update_speed_section(self) -> QGroupBox:
-        """Create update speed selector"""
-        group = QGroupBox("⏱️ UPDATE SPEED")
-        layout = QVBoxLayout()
-
-        self.speed_combo = QComboBox()
-        self.speed_combo.addItems(['SLOW (5s)', 'NORMAL (2s)', 'FAST (1s)', 'REALTIME (500ms)'])
-        self.speed_combo.setCurrentIndex(2)  # Default to FAST
-        self.speed_combo.setStyleSheet("""
-            QComboBox {
-                background-color: #2b2b2b;
-                color: white;
-                border: 1px solid #00ff00;
-                border-radius: 3px;
-                padding: 8px;
-                font-size: 14px;
-                min-height: 30px;
-            }
-        """)
-        self.speed_combo.currentTextChanged.connect(self.on_speed_changed)
-        layout.addWidget(self.speed_combo)
 
         group.setLayout(layout)
         return group
@@ -539,18 +511,6 @@ class MergedInstitutionalPanel(QWidget):
             self.mode_toggle.setText("MODE: INDICATOR ONLY")
             self.mode_changed.emit("MANUAL")
             self.log_status("Switched to INDICATOR ONLY mode")
-
-    def on_speed_changed(self, text):
-        """Handle speed change"""
-        speed_map = {
-            'SLOW (5s)': 'SLOW',
-            'NORMAL (2s)': 'NORMAL',
-            'FAST (1s)': 'FAST',
-            'REALTIME (500ms)': 'REALTIME'
-        }
-        speed = speed_map.get(text, 'FAST')
-        self.setting_changed.emit('update_speed', speed)
-        self.log_status(f"Update speed changed to {speed}")
 
     def on_filter_toggled(self, name: str, enabled: bool):
         """Handle filter toggle"""
