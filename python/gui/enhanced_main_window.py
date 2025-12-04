@@ -4,14 +4,15 @@ Integrates the comprehensive institutional panel and enhanced chart system
 """
 
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                             QTabWidget, QLabel, QSplitter, QStatusBar)
+                             QTabWidget, QLabel, QSplitter, QStatusBar, QMenu, QMessageBox)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QAction
 from datetime import datetime
 
 from gui.institutional_panel import InstitutionalPanel
 from gui.chart_panel_matplotlib import ChartPanel  # USE ORIGINAL EXCELLENT CHART!
 from gui.controls_panel import ControlsPanel
+from gui.symbol_manager_dialog import SymbolManagerDialog
 
 # Import existing widgets
 from widgets.opportunity_scanner_widget import OpportunityScannerWidget
@@ -106,6 +107,9 @@ class EnhancedMainWindow(QMainWindow):
 
         # === STATUS BAR ===
         self.create_status_bar()
+
+        # === MENU BAR ===
+        self.create_menu_bar()
 
         # Apply dark theme
         self.apply_dark_theme()
@@ -400,12 +404,104 @@ class EnhancedMainWindow(QMainWindow):
         self.status_label.setText(f"MT5 Error: {error_message}")
         print(f"[MT5 ERROR] {error_message}")
 
+    def create_menu_bar(self):
+        """Create menu bar with File, View, Help menus"""
+        menubar = self.menuBar()
+
+        # === FILE MENU ===
+        file_menu = menubar.addMenu("&File")
+
+        export_action = QAction("Export Data", self)
+        export_action.triggered.connect(self.on_export)
+        file_menu.addAction(export_action)
+
+        file_menu.addSeparator()
+
+        exit_action = QAction("E&xit", self)
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
+
+        # === VIEW MENU ===
+        view_menu = menubar.addMenu("&View")
+
+        refresh_action = QAction("Refresh All", self)
+        refresh_action.triggered.connect(self.update_all_data)
+        view_menu.addAction(refresh_action)
+
+        view_menu.addSeparator()
+
+        manage_symbols_action = QAction("Manage Symbols...", self)
+        manage_symbols_action.triggered.connect(self.on_manage_symbols)
+        view_menu.addAction(manage_symbols_action)
+
+        # === HELP MENU ===
+        help_menu = menubar.addMenu("&Help")
+
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+
+    def on_export(self):
+        """Handle export action"""
+        self.status_label.setText("Exporting data...")
+        # Export trade journal
+        if hasattr(self, 'journal_widget'):
+            self.journal_widget.on_export_clicked()
+
+    def show_about(self):
+        """Show about dialog"""
+        QMessageBox.about(
+            self,
+            "About AppleTrader Pro Enhanced",
+            "AppleTrader Pro v3.0 - Enhanced Edition\n\n"
+            "Institutional Trading Robot with Machine Learning\n\n"
+            "Features:\n"
+            "✓ 10 Advanced Trading Improvements\n"
+            "✓ Institutional Filters & Controls\n"
+            "✓ Real-time Market Analysis\n"
+            "✓ AI-Powered Insights\n"
+            "✓ FVG, Order Block, Liquidity Zone Detection\n"
+            "✓ Automated Trade Journal\n\n"
+            "© 2025 AppleTrader Pro"
+        )
+
+    def on_manage_symbols(self):
+        """Show symbol manager dialog"""
+        dialog = SymbolManagerDialog(self)
+        dialog.symbols_changed.connect(self.on_symbols_updated)
+        dialog.exec()
+
+    def on_symbols_updated(self, symbols: list):
+        """Handle symbol list update from symbol manager"""
+        self.status_label.setText(f"Symbol list updated: {len(symbols)} symbols")
+        print(f"[Main Window] Symbol list updated: {symbols}")
+        # Update all widgets that use symbols
+        if hasattr(self, 'scanner_widget'):
+            self.scanner_widget.pairs_to_scan = symbols
+            self.scanner_widget.scan_market()
+
     def apply_dark_theme(self):
         """Apply dark theme to main window"""
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #1e1e1e;
                 color: #ffffff;
+            }
+            QMenuBar {
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border-bottom: 1px solid #444;
+            }
+            QMenuBar::item:selected {
+                background-color: #0d7377;
+            }
+            QMenu {
+                background-color: #2b2b2b;
+                color: #ffffff;
+                border: 1px solid #444;
+            }
+            QMenu::item:selected {
+                background-color: #0d7377;
             }
             QStatusBar {
                 background-color: #2b2b2b;
