@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("AppleTrader Pro - Institutional Trading Dashboard")
+        self.setWindowTitle("AppleTrader Pro - Institutional Trading Robot v3.0")
         self.setGeometry(100, 100, 1600, 1000)
 
         # Create central widget
@@ -109,16 +109,8 @@ class MainWindow(QMainWindow):
         self.apply_dark_theme()
 
     def create_toolbar(self) -> QHBoxLayout:
-        """Create top toolbar"""
+        """Create top toolbar - compact without title"""
         layout = QHBoxLayout()
-
-        # Title
-        title = QLabel("📊 AppleTrader Pro - Institutional Trading Dashboard")
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        title.setStyleSheet("color: #00aaff;")
-        layout.addWidget(title)
-
-        layout.addStretch()
 
         # Time display
         self.time_label = QLabel(datetime.now().strftime("%H:%M:%S"))
@@ -126,9 +118,9 @@ class MainWindow(QMainWindow):
         self.time_label.setStyleSheet("color: #94A3B8;")
         layout.addWidget(self.time_label)
 
-        layout.addSpacing(20)
+        layout.addStretch()
 
-        # Connection status (clearer labeling)
+        # Connection status
         self.connection_label = QLabel("🔴 MT5: Disconnected")
         self.connection_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         self.connection_label.setStyleSheet("color: #EF4444; background-color: #1E293B; padding: 5px 10px; border-radius: 5px;")
