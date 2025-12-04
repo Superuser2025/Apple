@@ -561,13 +561,15 @@ class OpportunityScannerWidget(QWidget):
                 row_layout = item.layout()
                 while row_layout.count():
                     widget_item = row_layout.takeAt(0)
-                    if widget_item.widget():
-                        widget_item.widget().setParent(None)
-                        widget_item.widget().deleteLater()
+                    widget = widget_item.widget()  # Store widget first
+                    if widget:  # Check if it's actually a widget
+                        widget.setParent(None)
+                        widget.deleteLater()
                         cleared_count += 1
             elif item.widget():
-                item.widget().setParent(None)
-                item.widget().deleteLater()
+                widget = item.widget()
+                widget.setParent(None)
+                widget.deleteLater()
                 cleared_count += 1
         print(f"[DEBUG] Cleared {cleared_count} existing widgets")
 
