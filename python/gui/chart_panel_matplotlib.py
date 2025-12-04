@@ -84,6 +84,9 @@ class ChartPanel(QWidget):
         # Sample data for demonstration
         self.candle_data = []
 
+        # Active patterns list for overlay panel
+        self.active_patterns = []
+
         # Loading flag to prevent updates during data reload
         self.is_loading = False
 
@@ -466,8 +469,17 @@ class ChartPanel(QWidget):
         # Draw institutional overlays (FVG, OB, Liquidity)
         self.draw_chart_overlays()
 
-        # Draw candlestick patterns
+        # Draw candlestick patterns with timeframes
         self.draw_candlestick_patterns()
+
+        # Draw active patterns panel overlay (MT5 EA style)
+        self.draw_active_patterns_panel()
+
+        # Draw price action commentary boxes (MT5 EA style)
+        self.draw_price_action_commentary()
+
+        # Draw system status messages (MT5 EA style)
+        self.draw_system_status_messages()
 
         # Adjust layout with proper margins
         try:
@@ -506,11 +518,14 @@ class ChartPanel(QWidget):
             pass
 
     def draw_candlestick_patterns(self):
-        """Detect and draw candlestick patterns on chart"""
+        """Detect and draw candlestick patterns on chart with TIMEFRAME labels"""
         if not self.candle_data or len(self.candle_data) < 3:
             return
 
         try:
+            # Store active patterns for the active patterns panel
+            self.active_patterns = []
+
             # Analyze last 20 candles for patterns
             num_candles = min(20, len(self.candle_data))
             start_idx = len(self.candle_data) - num_candles
@@ -518,9 +533,16 @@ class ChartPanel(QWidget):
             for i in range(start_idx, len(self.candle_data)):
                 pattern = self.detect_pattern_at_index(i)
                 if pattern:
+                    # Add timeframe to pattern name (matching MT5 EA style)
+                    pattern_with_tf = f"{pattern} [{self.current_timeframe}]"
+
+                    # Store active pattern for overlay panel
+                    if i >= len(self.candle_data) - 5:  # Last 5 candles are "active"
+                        self.active_patterns.append(pattern_with_tf)
+
                     # Draw pattern annotation
                     candle = self.candle_data[i]
-                    y_pos = candle['high'] + (candle['high'] - candle['low']) * 0.3
+                    y_pos = candle['high'] + (candle['high'] - candle['low']) * 0.5
 
                     # Color based on pattern type
                     if 'BULLISH' in pattern or 'HAMMER' in pattern or 'ENGULF' in pattern and i > start_idx:
@@ -533,19 +555,26 @@ class ChartPanel(QWidget):
                         color = '#F59E0B'  # Orange
                         marker = '●'
 
-                    # Add pattern marker
-                    self.canvas.axes.plot(i, y_pos, marker=marker, color=color, markersize=8, zorder=100)
+                    # Add pattern marker (LARGER for visibility)
+                    self.canvas.axes.plot(i, y_pos, marker=marker, color=color, markersize=12, zorder=100)
 
-                    # Add pattern label
+                    # Add pattern label with TIMEFRAME (LARGER font like MT5 EA)
                     self.canvas.axes.text(
-                        i, y_pos + (candle['high'] - candle['low']) * 0.2,
-                        pattern,
-                        fontsize=7,
-                        color=color,
+                        i, y_pos + (candle['high'] - candle['low']) * 0.3,
+                        pattern_with_tf,
+                        fontsize=9,  # Larger font (was 7)
+                        color='#FFFFFF',  # White text for better visibility
                         weight='bold',
                         ha='center',
                         rotation=0,
-                        bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.95)
+                        bbox=dict(
+                            boxstyle='round,pad=0.5',
+                            facecolor=color,  # Colored background
+                            edgecolor='#FFFFFF',  # White border
+                            alpha=0.95,
+                            linewidth=2
+                        ),
+                        zorder=101
                     )
 
         except Exception as e:
@@ -598,6 +627,242 @@ class ChartPanel(QWidget):
             return "DOJI"
 
         return None
+
+    def draw_active_patterns_panel(self):
+        """Draw active patterns indicator panel overlay on chart (MT5 EA style)"""
+        if not hasattr(self, 'active_patterns') or not self.active_patterns:
+            return
+
+        try:
+            # Get chart limits
+            ylim = self.canvas.axes.get_ylim()
+            xlim = self.canvas.axes.get_xlim()
+
+            # Position panel in top-left corner (like MT5 EA)
+            panel_x = xlim[0] + (xlim[1] - xlim[0]) * 0.02
+            panel_y_start = ylim[1] - (ylim[1] - ylim[0]) * 0.05
+
+            # Draw panel background
+            panel_height = len(self.active_patterns) * 0.04 * (ylim[1] - ylim[0]) + 0.02 * (ylim[1] - ylim[0])
+            panel_width = 0.30 * (xlim[1] - xlim[0])
+
+            panel_rect = Rectangle(
+                (panel_x, panel_y_start - panel_height),
+                panel_width,
+                panel_height,
+                facecolor='#1E293B',
+                edgecolor='#3B82F6',
+                alpha=0.95,
+                linewidth=2,
+                zorder=200
+            )
+            self.canvas.axes.add_patch(panel_rect)
+
+            # Add panel title
+            title_y = panel_y_start - 0.015 * (ylim[1] - ylim[0])
+            self.canvas.axes.text(
+                panel_x + panel_width * 0.5,
+                title_y,
+                '🔍 ACTIVE PATTERNS',
+                fontsize=10,
+                color='#3B82F6',
+                weight='bold',
+                ha='center',
+                va='top',
+                zorder=201
+            )
+
+            # Add each active pattern
+            y_offset = 0.045 * (ylim[1] - ylim[0])
+            for i, pattern in enumerate(self.active_patterns):
+                pattern_y = panel_y_start - y_offset - (i * 0.04 * (ylim[1] - ylim[0]))
+
+                # Color based on pattern type
+                if 'BULLISH' in pattern or 'HAMMER' in pattern:
+                    color = '#10B981'
+                    marker = '▲'
+                elif 'BEARISH' in pattern or 'STAR' in pattern:
+                    color = '#EF4444'
+                    marker = '▼'
+                else:
+                    color = '#F59E0B'
+                    marker = '●'
+
+                # Draw pattern text with marker
+                self.canvas.axes.text(
+                    panel_x + panel_width * 0.05,
+                    pattern_y,
+                    f'{marker} {pattern}',
+                    fontsize=9,
+                    color=color,
+                    weight='bold',
+                    ha='left',
+                    va='center',
+                    zorder=201
+                )
+
+        except Exception as e:
+            pass
+
+    def draw_price_action_commentary(self):
+        """Draw detailed price action commentary boxes (MT5 EA style)"""
+        if not self.candle_data or len(self.candle_data) < 10:
+            return
+
+        try:
+            # Get market analysis from data_manager or generate based on patterns
+            ylim = self.canvas.axes.get_ylim()
+            xlim = self.canvas.axes.get_xlim()
+
+            # Generate commentary based on current patterns and trend
+            commentaries = []
+
+            # Analyze recent trend
+            recent_closes = [c['close'] for c in self.candle_data[-10:]]
+            trend = "BULLISH" if recent_closes[-1] > recent_closes[0] else "BEARISH"
+            trend_color = '#10B981' if trend == "BULLISH" else '#EF4444'
+
+            # Check for higher highs / lower lows
+            recent_highs = [c['high'] for c in self.candle_data[-10:]]
+            recent_lows = [c['low'] for c in self.candle_data[-10:]]
+
+            if recent_highs[-1] > max(recent_highs[:-1]):
+                structure = "Higher Highs forming"
+            elif recent_lows[-1] < min(recent_lows[:-1]):
+                structure = "Lower Lows forming"
+            else:
+                structure = "Consolidation phase"
+
+            commentaries.append({
+                'text': f'Trend: {trend}\n{structure}',
+                'color': trend_color,
+                'position': 0.15  # 15% from bottom
+            })
+
+            # Add momentum commentary
+            momentum_text = f'Momentum: {"Strong" if abs(recent_closes[-1] - recent_closes[0]) > 0.001 else "Weak"}'
+            commentaries.append({
+                'text': momentum_text,
+                'color': '#3B82F6',
+                'position': 0.30  # 30% from bottom
+            })
+
+            # Add pattern-specific commentary if patterns detected
+            if hasattr(self, 'active_patterns') and self.active_patterns:
+                pattern_text = f'Patterns detected:\n{len(self.active_patterns)} active'
+                commentaries.append({
+                    'text': pattern_text,
+                    'color': '#F59E0B',
+                    'position': 0.45  # 45% from bottom
+                })
+
+            # Draw commentary boxes
+            for i, commentary in enumerate(commentaries):
+                # Position in middle-right area of chart
+                box_x = xlim[0] + (xlim[1] - xlim[0]) * 0.60
+                box_y = ylim[0] + (ylim[1] - ylim[0]) * commentary['position']
+
+                # Draw commentary box
+                self.canvas.axes.text(
+                    box_x,
+                    box_y,
+                    commentary['text'],
+                    fontsize=9,
+                    color='#FFFFFF',
+                    weight='bold',
+                    ha='left',
+                    va='center',
+                    bbox=dict(
+                        boxstyle='round,pad=0.8',
+                        facecolor=commentary['color'],
+                        edgecolor='#FFFFFF',
+                        alpha=0.90,
+                        linewidth=2
+                    ),
+                    zorder=150
+                )
+
+        except Exception as e:
+            pass
+
+    def draw_system_status_messages(self):
+        """Draw system status/advice messages on chart (MT5 EA style)"""
+        if not self.candle_data:
+            return
+
+        try:
+            # Get chart limits
+            ylim = self.canvas.axes.get_ylim()
+            xlim = self.canvas.axes.get_xlim()
+
+            # Generate system messages based on timeframe and conditions
+            messages = []
+
+            # Timeframe recommendation
+            if self.current_timeframe in ['M1', 'M5']:
+                messages.append({
+                    'text': f'⚠️ Switch to H1 or H4 for optimal results',
+                    'color': '#F59E0B',
+                    'position': 'top'
+                })
+            elif self.current_timeframe in ['H4', 'H1']:
+                messages.append({
+                    'text': f'✅ Optimal timeframe for institutional trading',
+                    'color': '#10B981',
+                    'position': 'top'
+                })
+
+            # Market condition message
+            if len(self.candle_data) >= 10:
+                recent_range = max([c['high'] for c in self.candle_data[-10:]]) - min([c['low'] for c in self.candle_data[-10:]])
+                avg_body = sum([abs(c['close'] - c['open']) for c in self.candle_data[-10:]]) / 10
+
+                if avg_body < recent_range * 0.3:
+                    messages.append({
+                        'text': '📊 Low volatility - wait for breakout',
+                        'color': '#94A3B8',
+                        'position': 'middle'
+                    })
+                else:
+                    messages.append({
+                        'text': '⚡ High volatility - strong moves expected',
+                        'color': '#3B82F6',
+                        'position': 'middle'
+                    })
+
+            # Draw messages
+            for i, message in enumerate(messages):
+                if message['position'] == 'top':
+                    msg_y = ylim[1] - (ylim[1] - ylim[0]) * 0.15
+                elif message['position'] == 'middle':
+                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.85
+                else:
+                    msg_y = ylim[0] + (ylim[1] - ylim[0]) * 0.10
+
+                msg_x = xlim[0] + (xlim[1] - xlim[0]) * 0.35
+
+                # Draw message box
+                self.canvas.axes.text(
+                    msg_x,
+                    msg_y,
+                    message['text'],
+                    fontsize=9,
+                    color='#FFFFFF',
+                    weight='bold',
+                    ha='center',
+                    va='center',
+                    bbox=dict(
+                        boxstyle='round,pad=0.6',
+                        facecolor=message['color'],
+                        edgecolor='#FFFFFF',
+                        alpha=0.85,
+                        linewidth=2
+                    ),
+                    zorder=150
+                )
+
+        except Exception as e:
+            pass
 
     def draw_chart_overlays(self):
         """Draw FVG/OB/Liquidity zones on chart from REAL EA data"""
