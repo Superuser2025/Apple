@@ -23,9 +23,8 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setFixedHeight(140)  # Increased from 110 to 140
-        self.setMinimumWidth(300)  # Minimum width, will expand to fill
-        self.setSizePolicy(self.sizePolicy().Policy.Expanding, self.sizePolicy().Policy.Fixed)
+        self.setFixedHeight(140)
+        self.setFixedWidth(380)  # Fixed width - fits 3-4 per row
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -273,11 +272,11 @@ class OpportunityScannerWidget(QWidget):
         self.scroll_content = QWidget()
         self.scroll_content.setObjectName("ScrollContent")
 
-        # Use VBoxLayout with horizontal rows to fill width properly
-        self.cards_layout = QVBoxLayout(self.scroll_content)
-        self.cards_layout.setSpacing(10)
-        self.cards_layout.setContentsMargins(5, 5, 5, 5)
-        self.cards_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        # Use GridLayout - 3 cards per row
+        self.grid_layout = QGridLayout(self.scroll_content)
+        self.grid_layout.setSpacing(10)
+        self.grid_layout.setContentsMargins(5, 5, 5, 5)
+        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         scroll.setWidget(self.scroll_content)
         layout.addWidget(scroll, 1)  # Give it stretch factor to expand
@@ -549,43 +548,31 @@ class OpportunityScannerWidget(QWidget):
             return None
 
     def update_display(self):
-        """Update the opportunities display - cards fill width horizontally"""
+        """Update the opportunities display - 3 cards per row"""
         print(f"[DEBUG] update_display() called with {len(self.opportunities)} opportunities")
 
         # Clear existing cards - properly remove them
         cleared_count = 0
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            if item.layout():
-                # It's a horizontal layout row
-                row_layout = item.layout()
-                while row_layout.count():
-                    widget_item = row_layout.takeAt(0)
-                    widget = widget_item.widget()  # Store widget first
-                    if widget:  # Check if it's actually a widget
-                        widget.setParent(None)
-                        widget.deleteLater()
-                        cleared_count += 1
-            elif item.widget():
-                widget = item.widget()
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
                 widget.setParent(None)
                 widget.deleteLater()
                 cleared_count += 1
         print(f"[DEBUG] Cleared {cleared_count} existing widgets")
 
-        # Add opportunity cards in horizontal rows that fill width
-        # Each card expands to fill available width
+        # Add opportunity cards - 3 per row
         for idx, opp in enumerate(self.opportunities):
             card = OpportunityCard(opp)
             card.mousePressEvent = lambda event, o=opp: self.opportunity_selected.emit(o)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            # Create horizontal row for each card (fills width)
-            row_layout = QHBoxLayout()
-            row_layout.addWidget(card)
-            self.cards_layout.addLayout(row_layout)
+            row = idx // 3  # 3 cards per row
+            col = idx % 3
+            self.grid_layout.addWidget(card, row, col)
 
-            print(f"[DEBUG] Added card {idx}: {opp['symbol']} {opp['direction']} [{opp['timeframe']}]")
+            print(f"[DEBUG] Added card {idx} at row={row}, col={col}: {opp['symbol']} {opp['direction']} [{opp['timeframe']}]")
 
         # Update count
         count = len(self.opportunities)

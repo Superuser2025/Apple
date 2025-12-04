@@ -19,6 +19,12 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import MetaTrader5 as mt5
+import warnings
+import logging
+
+# Suppress matplotlib font warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
 
 from core.data_manager import data_manager
 
