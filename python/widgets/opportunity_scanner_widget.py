@@ -375,8 +375,18 @@ class OpportunityScannerWidget(QWidget):
         # Number of opportunities to show (3-6 for better visibility)
         num_opportunities = random.randint(3, 6)
 
+        # Track used pairs to avoid duplicates
+        used_pairs = set()
+
         for _ in range(num_opportunities):
-            pair = random.choice(self.pairs_to_scan)
+            # Select unique pair (not already used)
+            available_pairs = [p for p in self.pairs_to_scan if p not in used_pairs]
+            if not available_pairs:
+                break  # No more unique pairs available
+
+            pair = random.choice(available_pairs)
+            used_pairs.add(pair)
+
             direction = random.choice(['BUY', 'SELL'])
             timeframe = random.choice(['M15', 'M30', 'H1', 'H4', 'D1'])
 
