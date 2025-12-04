@@ -156,6 +156,7 @@ class MainWindow(QMainWindow):
 
         # Connect chart panel signals
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
+        self.chart_panel.symbol_changed.connect(self.on_symbol_changed)
 
         return widget
 
@@ -298,12 +299,30 @@ class MainWindow(QMainWindow):
         help_menu.addAction(about_action)
 
     def on_symbol_changed(self, symbol: str):
-        """Handle symbol change"""
+        """Handle symbol change - update ALL widgets to new symbol"""
         self.current_symbol = symbol
         self.status_label.setText(f"Symbol changed to: {symbol}")
 
         # Update all widgets with new symbol
-        self.orderflow_widget.set_symbol(symbol)
+        if hasattr(self, 'orderflow_widget'):
+            self.orderflow_widget.set_symbol(symbol)
+
+        if hasattr(self, 'commentary_widget'):
+            self.commentary_widget.set_symbol(symbol)
+
+        if hasattr(self, 'position_widget'):
+            self.position_widget.set_symbol(symbol)
+
+        if hasattr(self, 'rr_widget'):
+            self.rr_widget.set_symbol(symbol)
+
+        if hasattr(self, 'pattern_widget'):
+            self.pattern_widget.set_symbol(symbol)
+
+        if hasattr(self, 'structure_widget'):
+            self.structure_widget.set_symbol(symbol)
+
+        # Request fresh data for this symbol from MT5
         self.update_all_data()
 
     def on_timeframe_changed(self, timeframe: str):

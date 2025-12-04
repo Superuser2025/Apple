@@ -80,6 +80,7 @@ class ChartPanel(QWidget):
 
     # Signals
     timeframe_changed = pyqtSignal(str)
+    symbol_changed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -1630,6 +1631,9 @@ class ChartPanel(QWidget):
         self.is_loading = True
 
         self.current_symbol = symbol
+
+        # Emit signal to notify main window
+        self.symbol_changed.emit(symbol)
 
         # Reload historical data for new symbol
         if self.mt5_initialized:
