@@ -149,6 +149,7 @@ class MainWindow(QMainWindow):
         # Connect chart panel signals
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
         self.chart_panel.symbol_changed.connect(self.on_symbol_changed)
+        self.chart_panel.display_mode_changed.connect(self.on_display_mode_changed)
 
         return widget
 
@@ -322,6 +323,17 @@ class MainWindow(QMainWindow):
         self.current_timeframe = timeframe
         self.status_label.setText(f"Timeframe changed to: {timeframe}")
         self.update_all_data()
+
+    def on_display_mode_changed(self, is_max_mode: bool):
+        """Handle chart display mode change"""
+        if is_max_mode:
+            # MAX MODE: Hide controls panel to show chart full screen
+            self.controls_panel.setVisible(False)
+            self.status_label.setText("Chart: MAX MODE")
+        else:
+            # SMALL MODE: Show controls panel
+            self.controls_panel.setVisible(True)
+            self.status_label.setText("Chart: SMALL MODE")
 
     def update_all_data(self):
         """Update all widgets with latest data"""

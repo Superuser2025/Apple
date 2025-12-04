@@ -81,12 +81,16 @@ class ChartPanel(QWidget):
     # Signals
     timeframe_changed = pyqtSignal(str)
     symbol_changed = pyqtSignal(str)
+    display_mode_changed = pyqtSignal(bool)  # True = max mode, False = small mode
 
     def __init__(self):
         super().__init__()
 
         self.current_symbol = settings.app.default_symbol
         self.current_timeframe = settings.app.default_timeframe
+
+        # Display mode
+        self.is_max_mode = False
 
         # Sample data for demonstration
         self.candle_data = []
@@ -302,6 +306,30 @@ class ChartPanel(QWidget):
             }}
         """)
         layout.addWidget(self.speed_combo)
+
+        layout.addSpacing(20)
+
+        # Display mode toggle button
+        self.display_toggle_btn = QPushButton("⛶ MAX MODE")
+        self.display_toggle_btn.clicked.connect(self.toggle_display_mode)
+        self.display_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {settings.theme.accent};
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: {settings.theme.font_size_md}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #2563EB;
+            }}
+            QPushButton:pressed {{
+                background-color: #1E40AF;
+            }}
+        """)
+        layout.addWidget(self.display_toggle_btn)
 
         layout.addStretch()
 
@@ -958,24 +986,24 @@ class ChartPanel(QWidget):
                         color = '#F59E0B'  # Orange
                         marker = '●'
 
-                    # Add pattern marker (LARGER for visibility)
-                    self.canvas.axes.plot(i, y_pos, marker=marker, color=color, markersize=12, zorder=100)
+                    # Add pattern marker - VERY LARGE for visibility like MT5 EA
+                    self.canvas.axes.plot(i, y_pos, marker=marker, color=color, markersize=18, zorder=100)
 
-                    # Add pattern label with TIMEFRAME (LARGER font like MT5 EA)
+                    # Add pattern label with TIMEFRAME - MUCH LARGER font like MT5 EA
                     self.canvas.axes.text(
-                        i, y_pos + (candle['high'] - candle['low']) * 0.3,
+                        i, y_pos + (candle['high'] - candle['low']) * 0.4,
                         pattern_with_tf,
-                        fontsize=9,  # Larger font (was 7)
+                        fontsize=11,  # Much larger font for visibility
                         color='#FFFFFF',  # White text for better visibility
                         weight='bold',
                         ha='center',
                         rotation=0,
                         bbox=dict(
-                            boxstyle='round,pad=0.5',
+                            boxstyle='round,pad=0.6',
                             facecolor=color,  # Colored background
                             edgecolor='#FFFFFF',  # White border
-                            alpha=0.95,
-                            linewidth=2
+                            alpha=0.98,
+                            linewidth=2.5
                         ),
                         zorder=101
                     )
@@ -1651,3 +1679,49 @@ class ChartPanel(QWidget):
 
         # Clear loading flag - updates can resume
         self.is_loading = False
+
+    def toggle_display_mode(self):
+        """Toggle between small and max display modes"""
+        self.is_max_mode = not self.is_max_mode
+
+        if self.is_max_mode:
+            self.display_toggle_btn.setText("⊟ SMALL MODE")
+            self.display_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {settings.theme.danger};
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_md}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+                QPushButton:pressed {{
+                    background-color: #B91C1C;
+                }}
+            """)
+        else:
+            self.display_toggle_btn.setText("⛶ MAX MODE")
+            self.display_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: {settings.theme.accent};
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_md}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #2563EB;
+                }}
+                QPushButton:pressed {{
+                    background-color: #1E40AF;
+                }}
+            """)
+
+        # Emit signal to main window
+        self.display_mode_changed.emit(self.is_max_mode)
