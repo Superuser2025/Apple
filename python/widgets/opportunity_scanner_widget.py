@@ -4,10 +4,10 @@ Scans all pairs for high-probability trading setups in real-time
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                            QFrame, QScrollArea, QGridLayout)
+                            QFrame, QScrollArea, QGridLayout, QComboBox)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import random
 
@@ -24,7 +24,8 @@ class OpportunityCard(QFrame):
     def init_ui(self):
         """Initialize the opportunity card UI"""
         self.setFixedHeight(140)  # Increased from 110 to 140
-        self.setFixedWidth(320)  # Increased from 280 to 320
+        self.setMinimumWidth(300)  # Minimum width, will expand to fill
+        self.setSizePolicy(self.sizePolicy().Policy.Expanding, self.sizePolicy().Policy.Fixed)
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -154,12 +155,18 @@ class OpportunityScannerWidget(QWidget):
         self.mt5_connector = None  # Will be set when MT5 connects
         self.using_real_data = False
 
+        # Timeframe filter - default to scan multiple timeframes
+        self.timeframe_filter = 'ALL'  # Can be 'ALL', 'M15', 'M30', 'H1', 'H4', 'D1'
+
+        # Signal persistence - keep signals for 5 minutes minimum
+        self.signal_persist_duration = 300  # 5 minutes in seconds
+
         self.init_ui()
 
-        # Auto-scan timer (every 10 seconds)
+        # Auto-scan timer (every 30 seconds - less frequent to keep signals visible longer)
         self.scan_timer = QTimer()
         self.scan_timer.timeout.connect(self.scan_market)
-        self.scan_timer.start(10000)
+        self.scan_timer.start(30000)  # Changed from 10 to 30 seconds
 
         # Initial scan - delayed to ensure UI is fully initialized
         QTimer.singleShot(100, self.scan_market)
@@ -197,22 +204,57 @@ class OpportunityScannerWidget(QWidget):
 
         layout.addLayout(header_layout)
 
-        # === INFO BAR ===
-        info_layout = QHBoxLayout()
+        # === TIMEFRAME FILTER & INFO BAR ===
+        filter_layout = QHBoxLayout()
 
-        info_text = QLabel("Showing high-probability setups across all pairs • Ranked by quality • Auto-updated")
-        info_text.setFont(QFont("Arial", 9))
-        info_text.setStyleSheet("color: #6B7280;")
-        info_layout.addWidget(info_text)
+        # Timeframe filter
+        tf_label = QLabel("Timeframe:")
+        tf_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        tf_label.setStyleSheet("color: #F8FAFC;")
+        filter_layout.addWidget(tf_label)
 
-        info_layout.addStretch()
+        self.tf_filter_combo = QComboBox()
+        self.tf_filter_combo.addItems(['ALL', 'M15', 'M30', 'H1', 'H4', 'D1'])
+        self.tf_filter_combo.setCurrentText('ALL')
+        self.tf_filter_combo.setFont(QFont("Arial", 11))
+        self.tf_filter_combo.setStyleSheet("""
+            QComboBox {
+                background-color: #1E3A8A;
+                color: white;
+                border: 2px solid #3B82F6;
+                border-radius: 5px;
+                padding: 5px 10px;
+                min-width: 80px;
+                font-weight: bold;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1E3A8A;
+                color: white;
+                selection-background-color: #3B82F6;
+            }
+        """)
+        self.tf_filter_combo.currentTextChanged.connect(self.on_timeframe_filter_changed)
+        filter_layout.addWidget(self.tf_filter_combo)
+
+        filter_layout.addSpacing(20)
+
+        # Persistence info
+        persist_label = QLabel("⏱ Signals persist: 5 min")
+        persist_label.setFont(QFont("Arial", 10))
+        persist_label.setStyleSheet("color: #10B981;")
+        filter_layout.addWidget(persist_label)
+
+        filter_layout.addStretch()
 
         self.count_label = QLabel("0 opportunities found")
-        self.count_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
+        self.count_label.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         self.count_label.setStyleSheet("color: #3B82F6;")
-        info_layout.addWidget(self.count_label)
+        filter_layout.addWidget(self.count_label)
 
-        layout.addLayout(info_layout)
+        layout.addLayout(filter_layout)
 
         # === OPPORTUNITIES GRID ===
         scroll = QScrollArea()
@@ -231,10 +273,11 @@ class OpportunityScannerWidget(QWidget):
         self.scroll_content = QWidget()
         self.scroll_content.setObjectName("ScrollContent")
 
-        self.grid_layout = QGridLayout(self.scroll_content)
-        self.grid_layout.setSpacing(10)
-        self.grid_layout.setContentsMargins(5, 5, 5, 5)
-        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        # Use VBoxLayout with horizontal rows to fill width properly
+        self.cards_layout = QVBoxLayout(self.scroll_content)
+        self.cards_layout.setSpacing(10)
+        self.cards_layout.setContentsMargins(5, 5, 5, 5)
+        self.cards_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         scroll.setWidget(self.scroll_content)
         layout.addWidget(scroll, 1)  # Give it stretch factor to expand
@@ -271,19 +314,49 @@ class OpportunityScannerWidget(QWidget):
         print(f"[DEBUG] scan_market() called at {datetime.now().strftime('%H:%M:%S')}")
         self.blink_status()
 
+        current_time = datetime.now()
+
+        # Filter out expired opportunities (older than persist duration)
+        cutoff_time = current_time - timedelta(seconds=self.signal_persist_duration)
+        self.opportunities = [
+            opp for opp in self.opportunities
+            if opp.get('timestamp', current_time) > cutoff_time
+        ]
+        print(f"[Opportunity Scanner] Retained {len(self.opportunities)} persisted signals")
+
         # Try to use real MT5 data first
+        new_opportunities = []
         if self.using_real_data and self.mt5_connector:
-            self.opportunities = self.scan_real_market_data()
-            print(f"[Opportunity Scanner] Scanned REAL MT5 data: {len(self.opportunities)} opportunities found")
+            new_opportunities = self.scan_real_market_data()
+            print(f"[Opportunity Scanner] Scanned REAL MT5 data: {len(new_opportunities)} new opportunities found")
 
             # If no real opportunities found, show demo data as fallback (EA might not have sent data yet)
-            if len(self.opportunities) == 0:
+            if len(new_opportunities) == 0:
                 print(f"[Opportunity Scanner] No real opportunities found - using demo data as fallback")
-                self.opportunities = self.generate_opportunities()
+                new_opportunities = self.generate_opportunities()
         else:
             # MT5 not connected yet - show demo data temporarily
             print(f"[Opportunity Scanner] MT5 not connected - showing demo data temporarily")
-            self.opportunities = self.generate_opportunities()
+            new_opportunities = self.generate_opportunities()
+
+        # Add timestamps to new opportunities
+        for opp in new_opportunities:
+            if 'timestamp' not in opp:
+                opp['timestamp'] = current_time
+
+        # Merge new opportunities with persisted ones (avoid duplicates by symbol+timeframe)
+        existing_keys = {(o['symbol'], o['timeframe']) for o in self.opportunities}
+        for opp in new_opportunities:
+            key = (opp['symbol'], opp['timeframe'])
+            if key not in existing_keys:
+                self.opportunities.append(opp)
+
+        # Apply timeframe filter
+        if self.timeframe_filter != 'ALL':
+            self.opportunities = [
+                opp for opp in self.opportunities
+                if opp['timeframe'] == self.timeframe_filter
+            ]
 
         # Sort by quality score (highest first)
         self.opportunities.sort(key=lambda x: x['quality_score'], reverse=True)
@@ -305,7 +378,7 @@ class OpportunityScannerWidget(QWidget):
         for _ in range(num_opportunities):
             pair = random.choice(self.pairs_to_scan)
             direction = random.choice(['BUY', 'SELL'])
-            timeframe = random.choice(['H1', 'H4', 'D1'])
+            timeframe = random.choice(['M15', 'M30', 'H1', 'H4', 'D1'])
 
             # Generate realistic price levels
             base_price = self.get_base_price(pair)
@@ -466,30 +539,41 @@ class OpportunityScannerWidget(QWidget):
             return None
 
     def update_display(self):
-        """Update the opportunities grid display"""
+        """Update the opportunities display - cards fill width horizontally"""
         print(f"[DEBUG] update_display() called with {len(self.opportunities)} opportunities")
 
         # Clear existing cards - properly remove them
         cleared_count = 0
-        while self.grid_layout.count():
-            item = self.grid_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.setParent(None)
-                widget.deleteLater()
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            if item.layout():
+                # It's a horizontal layout row
+                row_layout = item.layout()
+                while row_layout.count():
+                    widget_item = row_layout.takeAt(0)
+                    if widget_item.widget():
+                        widget_item.widget().setParent(None)
+                        widget_item.widget().deleteLater()
+                        cleared_count += 1
+            elif item.widget():
+                item.widget().setParent(None)
+                item.widget().deleteLater()
                 cleared_count += 1
         print(f"[DEBUG] Cleared {cleared_count} existing widgets")
 
-        # Add opportunity cards (3 per row for better visibility)
+        # Add opportunity cards in horizontal rows that fill width
+        # Each card expands to fill available width
         for idx, opp in enumerate(self.opportunities):
             card = OpportunityCard(opp)
             card.mousePressEvent = lambda event, o=opp: self.opportunity_selected.emit(o)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            row = idx // 3
-            col = idx % 3
-            self.grid_layout.addWidget(card, row, col)
-            print(f"[DEBUG] Added card {idx} at row={row}, col={col}: {opp['symbol']} {opp['direction']}")
+            # Create horizontal row for each card (fills width)
+            row_layout = QHBoxLayout()
+            row_layout.addWidget(card)
+            self.cards_layout.addLayout(row_layout)
+
+            print(f"[DEBUG] Added card {idx}: {opp['symbol']} {opp['direction']} [{opp['timeframe']}]")
 
         # Update count
         count = len(self.opportunities)
@@ -499,6 +583,13 @@ class OpportunityScannerWidget(QWidget):
         # Force parent widget to update its layout
         self.updateGeometry()
         self.update()
+
+    def on_timeframe_filter_changed(self, timeframe: str):
+        """Handle timeframe filter change"""
+        self.timeframe_filter = timeframe
+        print(f"[Opportunity Scanner] Timeframe filter changed to: {timeframe}")
+        # Re-scan immediately to apply filter
+        self.scan_market()
 
     def blink_status(self):
         """Blink the scanning status indicator"""

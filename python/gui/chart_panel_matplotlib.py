@@ -733,10 +733,17 @@ class ChartPanel(QWidget):
             else:
                 structure = "Consolidation phase"
 
+            # Add symbol and timeframe header
+            commentaries.append({
+                'text': f'📊 {self.current_symbol} | {self.current_timeframe}',
+                'color': '#00aaff',
+                'position': 0.05  # 5% from bottom - shows symbol+TF
+            })
+
             commentaries.append({
                 'text': f'Trend: {trend}\n{structure}',
                 'color': trend_color,
-                'position': 0.15  # 15% from bottom
+                'position': 0.18  # 18% from bottom
             })
 
             # Add momentum commentary
@@ -744,16 +751,16 @@ class ChartPanel(QWidget):
             commentaries.append({
                 'text': momentum_text,
                 'color': '#3B82F6',
-                'position': 0.30  # 30% from bottom
+                'position': 0.33  # 33% from bottom
             })
 
             # Add pattern-specific commentary if patterns detected
             if hasattr(self, 'active_patterns') and self.active_patterns:
-                pattern_text = f'Patterns detected:\n{len(self.active_patterns)} active'
+                pattern_text = f'Patterns detected:\n{len(self.active_patterns)} active [{self.current_timeframe}]'
                 commentaries.append({
                     'text': pattern_text,
                     'color': '#F59E0B',
-                    'position': 0.45  # 45% from bottom
+                    'position': 0.48  # 48% from bottom
                 })
 
             # Draw commentary boxes
@@ -798,16 +805,16 @@ class ChartPanel(QWidget):
             # Generate system messages based on timeframe and conditions
             messages = []
 
-            # Timeframe recommendation
+            # Timeframe recommendation with symbol
             if self.current_timeframe in ['M1', 'M5']:
                 messages.append({
-                    'text': f'⚠️ Switch to H1 or H4 for optimal results',
+                    'text': f'⚠️ {self.current_symbol} {self.current_timeframe}: Switch to H1/H4 for optimal results',
                     'color': '#F59E0B',
                     'position': 'top'
                 })
             elif self.current_timeframe in ['H4', 'H1']:
                 messages.append({
-                    'text': f'✅ Optimal timeframe for institutional trading',
+                    'text': f'✅ {self.current_symbol} {self.current_timeframe}: Optimal timeframe for institutional trading',
                     'color': '#10B981',
                     'position': 'top'
                 })
