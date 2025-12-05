@@ -207,35 +207,35 @@ class EnhancedMainWindow(QMainWindow):
         sizing_layout = QVBoxLayout(sizing_tab)
         self.position_widget = VolatilityPositionWidget()
         sizing_layout.addWidget(self.position_widget)
-        self.analysis_tabs.addTab(sizing_tab, "🎯 Position Size")
+        tabs.addTab(sizing_tab, "🎯 Position Size")
 
         # Tab 2: Risk-Reward
         rr_tab = QWidget()
         rr_layout = QVBoxLayout(rr_tab)
         self.rr_widget = RiskRewardWidget()
         rr_layout.addWidget(self.rr_widget)
-        self.analysis_tabs.addTab(rr_tab, "🎯 Risk-Reward")
+        tabs.addTab(rr_tab, "🎯 Risk-Reward")
 
         # Tab 3: Pattern Scorer
         pattern_tab = QWidget()
         pattern_layout = QVBoxLayout(pattern_tab)
         self.pattern_widget = PatternScorerWidget()
         pattern_layout.addWidget(self.pattern_widget)
-        self.analysis_tabs.addTab(pattern_tab, "⭐ Quality")
+        tabs.addTab(pattern_tab, "⭐ Quality")
 
         # Tab 4: Equity Curve
         equity_tab = QWidget()
         equity_layout = QVBoxLayout(equity_tab)
         self.equity_widget = EquityCurveWidget()
         equity_layout.addWidget(self.equity_widget)
-        self.analysis_tabs.addTab(equity_tab, "📊 Equity")
+        tabs.addTab(equity_tab, "📊 Equity")
 
         # Tab 5: Trade Journal
         journal_tab = QWidget()
         journal_layout = QVBoxLayout(journal_tab)
         self.journal_widget = TradeJournalWidget()
         journal_layout.addWidget(self.journal_widget)
-        self.analysis_tabs.addTab(journal_tab, "📝 Journal")
+        tabs.addTab(journal_tab, "📝 Journal")
 
         return tabs
 
