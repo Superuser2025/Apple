@@ -351,8 +351,8 @@ class OpportunityScannerWidget(QWidget):
         # Update display
         self.update_display()
 
-        # Update time
-        self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
+        # Update time label removed - no longer exists
+        # self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
 
     def generate_opportunities(self) -> List[Dict]:
         """Generate opportunities across all timeframes"""
@@ -519,6 +519,8 @@ class OpportunityScannerWidget(QWidget):
         self.long_group.update_opportunities(long_term[:12])
 
     def blink_status(self):
-        """Blink status"""
-        self.status_label.setStyleSheet("color: #FFFFFF;")
-        QTimer.singleShot(200, lambda: self.status_label.setStyleSheet("color: #10B981;"))
+        """Blink status - labels removed, method now does nothing"""
+        # Status label removed - no longer exists
+        # self.status_label.setStyleSheet("color: #FFFFFF;")
+        # QTimer.singleShot(200, lambda: self.status_label.setStyleSheet("color: #10B981;"))
+        pass  # Do nothing, labels removed
