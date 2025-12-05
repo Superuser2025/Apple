@@ -125,11 +125,8 @@ class EnhancedMainWindow(QMainWindow):
         """Create top toolbar"""
         layout = QHBoxLayout()
 
-        # Title
-        title = QLabel("📊 AppleTrader Pro - Institutional Trading Robot v3.0")
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        title.setStyleSheet("color: #00ff00;")
-        layout.addWidget(title)
+        # Title REMOVED - user requested removal
+        # No green text needed, wasting space
 
         layout.addStretch()
 
