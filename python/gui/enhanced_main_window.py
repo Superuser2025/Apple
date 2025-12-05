@@ -300,41 +300,24 @@ class EnhancedMainWindow(QMainWindow):
         self.update_all_data()
 
     def on_display_mode_changed(self, is_max_mode: bool):
-        """Handle MAX MODE toggle - hide/show panels to maximize chart"""
+        """Handle MAX MODE toggle - hide/show ONLY analysis tabs to maximize chart in center area"""
         print(f"[DEBUG] MAX MODE toggled: is_max_mode={is_max_mode}")
 
         if is_max_mode:
-            # MAX MODE: Hide EVERYTHING except the chart
-            print("[DEBUG] Entering MAX MODE - hiding all panels")
+            # MAX MODE: Hide ONLY the analysis tabs below chart
+            # Keep left panel, right panel, and scanner visible!
+            print("[DEBUG] Entering MAX MODE - hiding analysis tabs only")
 
-            # Hide scanner at top
-            self.scanner_widget.setVisible(False)
-
-            # Hide analysis tabs below chart
+            # Hide ONLY analysis tabs below chart - chart expands to fill blue rectangle
             self.analysis_tabs.setVisible(False)
 
-            # Hide left institutional panel
-            self.institutional_panel.setVisible(False)
-
-            # Hide right panel (position sizing, etc.)
-            self.right_panel.setVisible(False)
-
-            print("[DEBUG] MAX MODE active - chart should fill entire blue rectangle")
+            print("[DEBUG] MAX MODE active - chart fills blue rectangle, all panels still visible")
         else:
-            # SMALL MODE: Show everything again
-            print("[DEBUG] Exiting MAX MODE - showing all panels")
-
-            # Show scanner
-            self.scanner_widget.setVisible(True)
+            # SMALL MODE: Show analysis tabs again
+            print("[DEBUG] Exiting MAX MODE - showing analysis tabs")
 
             # Show analysis tabs
             self.analysis_tabs.setVisible(True)
-
-            # Show left panel
-            self.institutional_panel.setVisible(True)
-
-            # Show right panel
-            self.right_panel.setVisible(True)
 
             print("[DEBUG] SMALL MODE active - normal layout restored")
 
