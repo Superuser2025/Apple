@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize the user interface"""
-        self.setWindowTitle("AppleTrader Pro - Institutional Trading Robot v3.0")
+        # NO WINDOW TITLE - removed as requested
         self.setGeometry(100, 100, 1600, 1000)
 
         # Create central widget
