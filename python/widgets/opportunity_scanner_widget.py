@@ -252,46 +252,20 @@ class OpportunityScannerWidget(QWidget):
         QTimer.singleShot(100, self.scan_market)
 
     def init_ui(self):
-        """Initialize the user interface"""
-        self.setMinimumHeight(300)
+        """Initialize the user interface - NO HEADER"""
+        self.setMinimumHeight(320)  # Increased so cards don't get cut off
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)  # No margins - save space
+        layout.setSpacing(0)  # No spacing - save space
 
-        # === HEADER ===
-        header_layout = QHBoxLayout()
-
-        title = QLabel("🎯 Live Market Opportunity Scanner")
-        title.setFont(QFont("Arial", 13, QFont.Weight.Bold))
-        title.setStyleSheet("color: #00aaff;")
-        header_layout.addWidget(title)
-
-        header_layout.addStretch()
-
-        # Status
-        self.status_label = QLabel("🟢 SCANNING")
-        self.status_label.setFont(QFont("Arial", 9, QFont.Weight.Bold))
-        self.status_label.setStyleSheet("color: #10B981;")
-        header_layout.addWidget(self.status_label)
-
-        # Persistence
-        persist_label = QLabel("⏱ Signals: 5 min")
-        persist_label.setFont(QFont("Arial", 8))
-        persist_label.setStyleSheet("color: #10B981;")
-        header_layout.addWidget(persist_label)
-
-        # Update time
-        self.time_label = QLabel(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
-        self.time_label.setFont(QFont("Arial", 8))
-        self.time_label.setStyleSheet("color: #94A3B8;")
-        header_layout.addWidget(self.time_label)
-
-        layout.addLayout(header_layout)
+        # NO HEADER - Removed as requested by user
+        # Directly show the three timeframe groups
 
         # === THREE TIMEFRAME GROUPS (NO HEADERS, NO BADGES) ===
         groups_layout = QHBoxLayout()
-        groups_layout.setSpacing(10)
+        groups_layout.setSpacing(6)
+        groups_layout.setContentsMargins(0, 0, 0, 0)
 
         # Group 1: Short-term (M1, M5, M15)
         self.short_group = TimeframeGroup(['M1', 'M5', 'M15'])

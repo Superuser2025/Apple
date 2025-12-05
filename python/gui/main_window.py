@@ -67,14 +67,12 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)  # Remove all margins
         main_layout.setSpacing(0)  # Remove spacing
 
-        # === TOP TOOLBAR ===
-        toolbar_layout = self.create_toolbar()
-        main_layout.addLayout(toolbar_layout)
+        # NO TOOLBAR - Scanner goes directly to top as requested
 
-        # === OPPORTUNITY SCANNER (fills top space) ===
+        # === OPPORTUNITY SCANNER (at very top of screen) ===
         self.scanner_widget = OpportunityScannerWidget()
-        self.scanner_widget.setMinimumHeight(280)
-        self.scanner_widget.setMaximumHeight(300)
+        self.scanner_widget.setMinimumHeight(320)  # Increased so cards don't get cut off
+        self.scanner_widget.setMaximumHeight(340)
         # Give scanner access to MT5 connector immediately
         self.scanner_widget.set_mt5_connector(self.mt5_connector)
         main_layout.addWidget(self.scanner_widget)
