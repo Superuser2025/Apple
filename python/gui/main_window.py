@@ -331,12 +331,26 @@ class MainWindow(QMainWindow):
             self.controls_panel.setVisible(False)
             self.center_panel.setVisible(False)
             self.right_panel.setVisible(False)
+
+            # Force splitter to give all space to left panel (chart only)
+            total_width = self.main_splitter.width()
+            self.main_splitter.setSizes([total_width, 0, 0])
+
             self.status_label.setText("Chart: MAX MODE")
         else:
             # SMALL MODE: Show all panels
             self.controls_panel.setVisible(True)
             self.center_panel.setVisible(True)
             self.right_panel.setVisible(True)
+
+            # Restore original column widths (40% left, 35% center, 25% right)
+            total_width = self.main_splitter.width()
+            self.main_splitter.setSizes([
+                int(total_width * 0.40),
+                int(total_width * 0.35),
+                int(total_width * 0.25)
+            ])
+
             self.status_label.setText("Chart: SMALL MODE")
 
     def update_all_data(self):
