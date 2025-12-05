@@ -326,30 +326,37 @@ class MainWindow(QMainWindow):
 
     def on_display_mode_changed(self, is_max_mode: bool):
         """Handle chart display mode change"""
+        print(f"[DEBUG] on_display_mode_changed called: is_max_mode={is_max_mode}")
+
         if is_max_mode:
             # MAX MODE: Hide controls, center, and right panels - chart fills all central area
+            print("[DEBUG] Entering MAX MODE")
             self.controls_panel.setVisible(False)
             self.center_panel.setVisible(False)
             self.right_panel.setVisible(False)
 
+            # Force immediate layout update
+            self.main_splitter.update()
+
             # Force splitter to give all space to left panel (chart only)
-            total_width = self.main_splitter.width()
-            self.main_splitter.setSizes([total_width, 0, 0])
+            # Use QTimer to ensure this happens after the UI has processed the visibility changes
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: self.main_splitter.setSizes([1000000, 0, 0]))
 
             self.status_label.setText("Chart: MAX MODE")
         else:
             # SMALL MODE: Show all panels
+            print("[DEBUG] Entering SMALL MODE")
             self.controls_panel.setVisible(True)
             self.center_panel.setVisible(True)
             self.right_panel.setVisible(True)
 
+            # Force immediate layout update
+            self.main_splitter.update()
+
             # Restore original column widths (40% left, 35% center, 25% right)
-            total_width = self.main_splitter.width()
-            self.main_splitter.setSizes([
-                int(total_width * 0.40),
-                int(total_width * 0.35),
-                int(total_width * 0.25)
-            ])
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: self.main_splitter.setSizes([640, 560, 400]))
 
             self.status_label.setText("Chart: SMALL MODE")
 
