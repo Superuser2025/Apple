@@ -311,7 +311,7 @@ class EquityCurveWidget(QWidget):
     def update_from_live_data(self):
         """Update with live data from data_manager"""
         from core.data_manager import data_manager
-        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        symbol = self.current_symbol
         # Equity data is managed internally, just refresh display
         self.refresh_display()
 

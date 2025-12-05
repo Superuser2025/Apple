@@ -42,8 +42,7 @@ class MTFStructureWidget(QWidget):
 
     def update_from_live_data(self):
         """Update with live data from data_manager"""
-        from core.data_manager import data_manager
-        self.current_symbol = data_manager.candle_buffer.symbol or self.current_symbol
+        # Use self.current_symbol, don't overwrite it from data_manager!
         self.status_label.setText(f"Live: {self.current_symbol}")
 
     def init_ui(self):

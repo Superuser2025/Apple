@@ -128,7 +128,7 @@ class PatternScorerWidget(QWidget):
     def update_from_live_data(self):
         """Update with live data from data_manager"""
         from core.data_manager import data_manager
-        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        symbol = self.current_symbol
         # Pattern scores are updated externally via update_score()
         self.current_symbol = symbol
 
