@@ -23,11 +23,13 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setMinimumHeight(105)
-        self.setMaximumHeight(110)
+        # CRITICAL: Card must expand to fill grid cell
+        self.setMinimumHeight(90)
+        self.setMaximumHeight(95)
+        self.setMinimumWidth(50)  # Allow cards to shrink if needed
         self.setSizePolicy(
-            self.sizePolicy().Policy.Expanding,
-            self.sizePolicy().Policy.Fixed
+            QSizePolicy.Policy.Expanding,  # Expand horizontally to fill cell
+            QSizePolicy.Policy.Fixed        # Fixed height
         )
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
@@ -163,9 +165,12 @@ class TimeframeGroup(QWidget):
 
         # Grid layout - 4 columns, cards flow left-to-right
         self.grid_layout = QGridLayout(scroll_content)
-        self.grid_layout.setSpacing(6)
-        self.grid_layout.setContentsMargins(3, 3, 3, 3)
-        self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.grid_layout.setSpacing(4)
+        self.grid_layout.setContentsMargins(4, 4, 4, 4)
+
+        # CRITICAL: Make all columns equal width so cards resize properly
+        for col in range(4):
+            self.grid_layout.setColumnStretch(col, 1)
 
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll)
@@ -196,9 +201,11 @@ class TimeframeGroup(QWidget):
         # Fill remaining slots with spacers if < 12 cards (for even layout)
         for idx in range(len(self.opportunities), 12):
             spacer = QWidget()
-            spacer.setMinimumHeight(105)
-            spacer.setMaximumHeight(110)
+            spacer.setMinimumHeight(90)
+            spacer.setMaximumHeight(95)
+            spacer.setMinimumWidth(50)
             spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            spacer.setStyleSheet("background-color: transparent;")
             row = idx // 4
             col = idx % 4
             self.grid_layout.addWidget(spacer, row, col)
