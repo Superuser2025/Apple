@@ -451,6 +451,11 @@ class MainWindow(QMainWindow):
         if 'timeframe' in data:
             self.current_timeframe = data['timeframe']
 
+        # CRITICAL: Update data_manager with MT5 data so all widgets get live data
+        from core.data_manager import data_manager
+        data_manager.update_from_mt5_data(data)
+        print(f"[MT5] Updated data_manager with live data for {self.current_symbol}")
+
         # Feed real data to Chart Panel
         if hasattr(self, 'chart_panel'):
             # Update chart's symbol if changed
