@@ -4,9 +4,9 @@ Scans all pairs for high-probability trading setups in real-time
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                            QFrame, QScrollArea, QGridLayout, QSizePolicy)
+                            QFrame, QScrollArea, QGridLayout, QSizePolicy, QDialog)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QMouseEvent
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import random
@@ -15,10 +15,15 @@ import random
 class OpportunityCard(QFrame):
     """Card widget for a single trading opportunity"""
 
+    # Signal emitted when card is clicked
+    clicked = pyqtSignal(dict)
+
     def __init__(self, opportunity: Dict, parent=None):
         super().__init__(parent)
         self.opportunity = opportunity
         self.setObjectName("OpportunityCard")
+        self.setMouseTracking(True)  # Enable mouse tracking for hover effects
+        self.setCursor(Qt.CursorShape.PointingHandCursor)  # Show hand cursor on hover
         self.init_ui()
 
     def init_ui(self):
@@ -132,6 +137,12 @@ class OpportunityCard(QFrame):
         tf_label.setStyleSheet("color: #9CA3AF;")
         layout.addWidget(tf_label)
 
+    def mousePressEvent(self, event):
+        """Handle mouse press - emit clicked signal with opportunity data"""
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit(self.opportunity)
+        super().mousePressEvent(event)
+
 
 class TimeframeGroup(QWidget):
     """Group widget for a specific timeframe range - cards flow left to right"""
@@ -193,6 +204,9 @@ class TimeframeGroup(QWidget):
             card = OpportunityCard(opp)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
+            # Connect card click to show mini chart popup
+            card.clicked.connect(self.show_mini_chart)
+
             row = idx // 4  # 4 cards per row
             col = idx % 4   # Columns 0, 1, 2, 3
 
@@ -209,6 +223,11 @@ class TimeframeGroup(QWidget):
             row = idx // 4
             col = idx % 4
             self.grid_layout.addWidget(spacer, row, col)
+
+    def show_mini_chart(self, opportunity: Dict):
+        """Show mini chart popup for the clicked opportunity"""
+        popup = MiniChartPopup(opportunity, parent=self)
+        popup.show()
 
 
 class OpportunityScannerWidget(QWidget):
@@ -524,3 +543,127 @@ class OpportunityScannerWidget(QWidget):
         # self.status_label.setStyleSheet("color: #FFFFFF;")
         # QTimer.singleShot(200, lambda: self.status_label.setStyleSheet("color: #10B981;"))
         pass  # Do nothing, labels removed
+
+
+class MiniChartPopup(QDialog):
+    """
+    Mini chart popup for quick peeking at opportunity charts
+    Appears when clicking on scanner cards, disappears when clicking away
+    """
+
+    def __init__(self, opportunity: Dict, parent=None):
+        super().__init__(parent)
+        self.opportunity = opportunity
+        self.setWindowFlags(Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.init_ui()
+
+    def init_ui(self):
+        """Initialize the mini chart popup UI"""
+        # Set fixed size for mini chart
+        self.setFixedSize(600, 400)
+
+        # Main layout
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Container frame
+        container = QFrame()
+        container.setStyleSheet("""
+            QFrame {
+                background-color: #0A0E27;
+                border: 3px solid #3B82F6;
+                border-radius: 10px;
+            }
+        """)
+
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(15, 15, 15, 15)
+        container_layout.setSpacing(10)
+
+        # Header with symbol and timeframe
+        header_layout = QHBoxLayout()
+
+        symbol_label = QLabel(f"📊 {self.opportunity['symbol']}")
+        symbol_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        symbol_label.setStyleSheet("color: #FFFFFF; background: transparent; border: none;")
+        header_layout.addWidget(symbol_label)
+
+        header_layout.addStretch()
+
+        tf_label = QLabel(f"⏱ {self.opportunity['timeframe']}")
+        tf_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        tf_label.setStyleSheet("color: #3B82F6; background: transparent; border: none;")
+        header_layout.addWidget(tf_label)
+
+        direction = self.opportunity['direction']
+        dir_color = '#10B981' if direction == 'BUY' else '#EF4444'
+        dir_icon = '📈' if direction == 'BUY' else '📉'
+        dir_label = QLabel(f"{dir_icon} {direction}")
+        dir_label.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        dir_label.setStyleSheet(f"color: {dir_color}; background: transparent; border: none;")
+        header_layout.addWidget(dir_label)
+
+        container_layout.addLayout(header_layout)
+
+        # Chart placeholder (for now, show opportunity details)
+        # TODO: Integrate actual matplotlib chart here
+        chart_area = QFrame()
+        chart_area.setStyleSheet("""
+            QFrame {
+                background-color: #1E293B;
+                border: 1px solid #334155;
+                border-radius: 5px;
+            }
+        """)
+
+        chart_layout = QVBoxLayout(chart_area)
+        chart_layout.setContentsMargins(20, 20, 20, 20)
+
+        # Show trading details
+        details_html = f"""
+        <div style='color: #F8FAFC; font-family: Arial; font-size: 13px;'>
+            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Entry:</b> <span style='color: #3B82F6;'>{self.opportunity['entry']:.5f}</span></p>
+            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Stop Loss:</b> <span style='color: #EF4444;'>{self.opportunity['stop_loss']:.5f}</span></p>
+            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Take Profit:</b> <span style='color: #10B981;'>{self.opportunity['take_profit']:.5f}</span></p>
+            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Risk/Reward:</b> <span style='color: #F59E0B;'>{self.opportunity['risk_reward']:.1f}</span></p>
+            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Quality Score:</b> <span style='color: #10B981;'>⭐ {self.opportunity['quality_score']}</span></p>
+            <p style='margin: 10px 0 5px 0;'><b style='color: #94A3B8;'>Confluence:</b></p>
+            <p style='margin: 5px 0; color: #D1D5DB;'>✓ {" • ".join(self.opportunity.get('confluence_reasons', []))}</p>
+        </div>
+        """
+
+        details_label = QLabel(details_html)
+        details_label.setStyleSheet("background: transparent; border: none;")
+        chart_layout.addWidget(details_label)
+
+        chart_layout.addStretch()
+
+        container_layout.addWidget(chart_area)
+
+        # Footer hint
+        hint_label = QLabel("💡 Click outside to close")
+        hint_label.setFont(QFont("Arial", 10))
+        hint_label.setStyleSheet("color: #6B7280; background: transparent; border: none;")
+        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        container_layout.addWidget(hint_label)
+
+        layout.addWidget(container)
+
+    def showEvent(self, event):
+        """Position the popup near the mouse cursor"""
+        super().showEvent(event)
+
+        # Center on parent if available, otherwise center on screen
+        if self.parent():
+            parent_rect = self.parent().geometry()
+            x = parent_rect.x() + (parent_rect.width() - self.width()) // 2
+            y = parent_rect.y() + (parent_rect.height() - self.height()) // 2
+            self.move(x, y)
+        else:
+            from PyQt6.QtWidgets import QApplication
+            screen = QApplication.primaryScreen().geometry()
+            x = (screen.width() - self.width()) // 2
+            y = (screen.height() - self.height()) // 2
+            self.move(x, y)
