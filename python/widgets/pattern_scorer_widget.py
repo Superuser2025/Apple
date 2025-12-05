@@ -55,6 +55,7 @@ class PatternScorerWidget(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.current_symbol = "EURUSD"
         self.current_score: PatternScore = None
 
         self.init_ui()
@@ -362,6 +363,11 @@ class PatternScorerWidget(QWidget):
             swing_level=True
         )
         self.update_score(sample_score)
+
+    def set_symbol(self, symbol: str):
+        """Update current symbol"""
+        self.current_symbol = symbol
+        # Note: Pattern scores are updated externally via update_score()
 
     def update_score(self, score: PatternScore):
         """Update display with new pattern score"""

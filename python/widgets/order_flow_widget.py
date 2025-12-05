@@ -269,7 +269,10 @@ class InstitutionalOrderFlowWidget(QWidget):
 
     def set_symbol(self, symbol: str):
         """Set the current symbol to monitor"""
-        self.current_symbol = symbol
+        if symbol != self.current_symbol:
+            self.current_symbol = symbol
+            # Immediate refresh with new symbol
+            self.refresh_display()
 
     def refresh_display(self):
         """Refresh the display with current data"""

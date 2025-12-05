@@ -390,6 +390,11 @@ class CorrelationHeatmapWidget(QWidget):
 
                     self.correlation_table.setItem(i, j, item)
 
+    def set_symbol(self, symbol: str):
+        """Update current symbol (triggers refresh)"""
+        # This widget shows ALL pairs correlation, but we refresh on symbol change
+        self.on_refresh_requested()
+
     def on_refresh_requested(self):
         """Handle refresh request"""
         self.status_label.setText("Refreshing...")

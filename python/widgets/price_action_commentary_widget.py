@@ -212,6 +212,13 @@ class PriceActionCommentaryWidget(QWidget):
         except Exception as e:
             pass
 
+    def set_symbol(self, symbol: str):
+        """Update the current symbol and refresh commentary"""
+        if symbol != self.current_symbol:
+            self.current_symbol = symbol
+            # Immediate refresh with new symbol
+            self.update_commentary()
+
     def get_market_data(self) -> Dict:
         """Get current market data for analysis"""
         try:

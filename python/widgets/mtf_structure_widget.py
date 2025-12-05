@@ -28,6 +28,7 @@ class MTFStructureWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.current_symbol = "EURUSD"
         self.structure_data = None
         self.init_ui()
 
@@ -250,6 +251,12 @@ class MTFStructureWidget(QWidget):
 
         # Emit signal
         self.structure_updated.emit(structure_data)
+
+    def set_symbol(self, symbol: str):
+        """Update current symbol and refresh structure"""
+        if symbol != self.current_symbol:
+            self.current_symbol = symbol
+            self.on_refresh_requested()
 
     def on_refresh_requested(self):
         """Handle refresh request - external handler should provide new data"""

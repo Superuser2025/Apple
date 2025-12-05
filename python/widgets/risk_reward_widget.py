@@ -113,6 +113,7 @@ class RiskRewardWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.current_symbol = "EURUSD"
         self.current_analysis = None
         self.init_ui()
         self.load_sample_data()
@@ -312,6 +313,14 @@ class RiskRewardWidget(QWidget):
         """
         self.structure_levels = structure_levels
 
+    def set_symbol(self, symbol: str):
+        """Update current symbol and trigger recalculation"""
+        if symbol != self.current_symbol:
+            self.current_symbol = symbol
+            # Trigger recalculation if we have structure levels
+            if hasattr(self, 'structure_levels'):
+                self.calculate_tps()
+
     def calculate_tps(self):
         """Calculate and display optimized TPs"""
         if not hasattr(self, 'structure_levels'):
@@ -324,7 +333,7 @@ class RiskRewardWidget(QWidget):
         entry = self.entry_input.value()
         sl = self.sl_input.value()
         direction = 'BUY' if self.buy_btn.isChecked() else 'SELL'
-        symbol = "EURUSD"  # TODO: Get from actual symbol selector
+        symbol = self.current_symbol
 
         # Validate
         if entry == sl:

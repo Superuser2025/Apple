@@ -284,6 +284,14 @@ class VolatilityPositionWidget(QWidget):
         # Update market conditions display
         self.update_market_conditions()
 
+    def set_symbol(self, symbol: str):
+        """Update current symbol and refresh if data available"""
+        if symbol != self.current_symbol:
+            self.current_symbol = symbol
+            # Refresh display if we have data
+            if self.current_data is not None:
+                self.update_market_conditions()
+
     def update_market_conditions(self):
         """Update volatility and trend displays"""
         if self.current_symbol is None or self.current_data is None:

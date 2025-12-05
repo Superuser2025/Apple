@@ -356,6 +356,11 @@ class SessionMomentumWidget(QWidget):
             f"Updated: {time_str} | {len(leaderboard)} symbols scanned"
         )
 
+    def set_symbol(self, symbol: str):
+        """Update current symbol (triggers refresh)"""
+        # This widget shows ALL pairs leaderboard, but we refresh on symbol change
+        self.on_refresh_requested()
+
     def on_refresh_requested(self):
         """Handle refresh request"""
         self.status_label.setText("Refreshing...")
