@@ -99,6 +99,11 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self.main_splitter)
 
+        # === MAX MODE PANEL (Independent full-screen chart) ===
+        self.max_mode_panel = self.create_max_mode_panel()
+        self.max_mode_panel.setVisible(False)  # Hidden by default
+        main_layout.addWidget(self.max_mode_panel)
+
         # === STATUS BAR ===
         self.create_status_bar()
 
@@ -107,6 +112,25 @@ class MainWindow(QMainWindow):
 
         # Apply dark theme
         self.apply_dark_theme()
+
+    def create_max_mode_panel(self) -> QWidget:
+        """Create independent MAX MODE chart panel"""
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Create a new independent chart panel for MAX MODE
+        self.max_mode_chart = ChartPanel()
+
+        # Connect signals
+        self.max_mode_chart.timeframe_changed.connect(self.on_timeframe_changed)
+        self.max_mode_chart.symbol_changed.connect(self.on_symbol_changed)
+        self.max_mode_chart.display_mode_changed.connect(self.on_display_mode_changed)
+
+        layout.addWidget(self.max_mode_chart)
+
+        return panel
 
     def create_toolbar(self) -> QHBoxLayout:
         """Create top toolbar - compact without title"""
@@ -296,6 +320,15 @@ class MainWindow(QMainWindow):
         self.current_symbol = symbol
         self.status_label.setText(f"Symbol changed to: {symbol}")
 
+        # Sync both chart panels to the same symbol
+        if hasattr(self, 'chart_panel') and self.chart_panel.current_symbol != symbol:
+            self.chart_panel.current_symbol = symbol
+            self.chart_panel.symbol_combo.setCurrentText(symbol)
+
+        if hasattr(self, 'max_mode_chart') and self.max_mode_chart.current_symbol != symbol:
+            self.max_mode_chart.current_symbol = symbol
+            self.max_mode_chart.symbol_combo.setCurrentText(symbol)
+
         # Update all widgets with new symbol
         if hasattr(self, 'orderflow_widget'):
             self.orderflow_widget.set_symbol(symbol)
@@ -322,43 +355,64 @@ class MainWindow(QMainWindow):
         """Handle timeframe change"""
         self.current_timeframe = timeframe
         self.status_label.setText(f"Timeframe changed to: {timeframe}")
+
+        # Sync both chart panels to the same timeframe
+        if hasattr(self, 'chart_panel') and self.chart_panel.current_timeframe != timeframe:
+            self.chart_panel.current_timeframe = timeframe
+            self.chart_panel.timeframe_combo.setCurrentText(timeframe)
+
+        if hasattr(self, 'max_mode_chart') and self.max_mode_chart.current_timeframe != timeframe:
+            self.max_mode_chart.current_timeframe = timeframe
+            self.max_mode_chart.timeframe_combo.setCurrentText(timeframe)
+
         self.update_all_data()
 
     def on_display_mode_changed(self, is_max_mode: bool):
-        """Handle chart display mode change"""
+        """Handle chart display mode change - toggle between normal UI and MAX MODE panel"""
         print(f"[DEBUG] on_display_mode_changed called: is_max_mode={is_max_mode}")
 
         if is_max_mode:
-            # MAX MODE: Hide controls, center, and right panels - chart fills all central area
+            # MAX MODE: Hide ALL normal UI, show independent MAX MODE panel
             print("[DEBUG] Entering MAX MODE")
-            self.controls_panel.setVisible(False)
-            self.center_panel.setVisible(False)
-            self.right_panel.setVisible(False)
 
-            # Force immediate layout update
-            self.main_splitter.update()
+            # Sync current symbol and timeframe to MAX MODE chart
+            self.max_mode_chart.current_symbol = self.chart_panel.current_symbol
+            self.max_mode_chart.current_timeframe = self.chart_panel.current_timeframe
+            self.max_mode_chart.symbol_combo.setCurrentText(self.chart_panel.current_symbol)
+            self.max_mode_chart.timeframe_combo.setCurrentText(self.chart_panel.current_timeframe)
 
-            # Force splitter to give all space to left panel (chart only)
-            # Use QTimer to ensure this happens after the UI has processed the visibility changes
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(0, lambda: self.main_splitter.setSizes([1000000, 0, 0]))
+            # Hide normal UI
+            self.scanner_widget.setVisible(False)
+            self.main_splitter.setVisible(False)
 
-            self.status_label.setText("Chart: MAX MODE")
+            # Show MAX MODE panel
+            self.max_mode_panel.setVisible(True)
+
+            # Update MAX MODE chart
+            self.max_mode_chart.update_chart()
+
+            self.status_label.setText("Chart: MAX MODE - Full Screen")
         else:
-            # SMALL MODE: Show all panels
+            # SMALL MODE: Hide MAX MODE panel, show normal UI
             print("[DEBUG] Entering SMALL MODE")
-            self.controls_panel.setVisible(True)
-            self.center_panel.setVisible(True)
-            self.right_panel.setVisible(True)
 
-            # Force immediate layout update
-            self.main_splitter.update()
+            # Sync current symbol and timeframe back to normal chart
+            self.chart_panel.current_symbol = self.max_mode_chart.current_symbol
+            self.chart_panel.current_timeframe = self.max_mode_chart.current_timeframe
+            self.chart_panel.symbol_combo.setCurrentText(self.max_mode_chart.current_symbol)
+            self.chart_panel.timeframe_combo.setCurrentText(self.max_mode_chart.current_timeframe)
 
-            # Restore original column widths (40% left, 35% center, 25% right)
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(0, lambda: self.main_splitter.setSizes([640, 560, 400]))
+            # Hide MAX MODE panel
+            self.max_mode_panel.setVisible(False)
 
-            self.status_label.setText("Chart: SMALL MODE")
+            # Show normal UI
+            self.scanner_widget.setVisible(True)
+            self.main_splitter.setVisible(True)
+
+            # Update normal chart
+            self.chart_panel.update_chart()
+
+            self.status_label.setText("Chart: SMALL MODE - Dashboard View")
 
     def update_all_data(self):
         """Update all widgets with latest data"""
