@@ -79,7 +79,15 @@ class MainWindow(QMainWindow):
         self.scanner_widget.set_mt5_connector(self.mt5_connector)
         main_layout.addWidget(self.scanner_widget)
 
-        # === MAIN CONTENT (3 COLUMNS) ===
+        # === STACKED WIDGET FOR MODE SWITCHING ===
+        from PyQt6.QtWidgets import QStackedWidget
+        self.mode_stack = QStackedWidget()
+
+        # Page 0: Normal dashboard view
+        normal_page = QWidget()
+        normal_layout = QVBoxLayout(normal_page)
+        normal_layout.setContentsMargins(0, 0, 0, 0)
+
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # LEFT COLUMN: Chart + Controls
@@ -97,12 +105,17 @@ class MainWindow(QMainWindow):
         # Set column widths (40% left, 35% center, 25% right)
         self.main_splitter.setSizes([640, 560, 400])
 
-        main_layout.addWidget(self.main_splitter)
+        normal_layout.addWidget(self.main_splitter)
+        self.mode_stack.addWidget(normal_page)  # Index 0
 
-        # === MAX MODE PANEL (Independent full-screen chart) ===
+        # Page 1: MAX MODE full-screen chart
         self.max_mode_panel = self.create_max_mode_panel()
-        self.max_mode_panel.setVisible(False)  # Hidden by default
-        main_layout.addWidget(self.max_mode_panel)
+        self.mode_stack.addWidget(self.max_mode_panel)  # Index 1
+
+        # Start in normal mode
+        self.mode_stack.setCurrentIndex(0)
+
+        main_layout.addWidget(self.mode_stack)
 
         # === STATUS BAR ===
         self.create_status_bar()
@@ -186,6 +199,8 @@ class MainWindow(QMainWindow):
         commentary_tab = QWidget()
         commentary_layout = QVBoxLayout(commentary_tab)
         self.commentary_widget = PriceActionCommentaryWidget()
+        # Connect to MT5 for live data
+        self.commentary_widget.set_symbol(self.current_symbol)
         commentary_layout.addWidget(self.commentary_widget)
         tabs.addTab(commentary_tab, "📊 Price Action")
 
@@ -368,11 +383,11 @@ class MainWindow(QMainWindow):
         self.update_all_data()
 
     def on_display_mode_changed(self, is_max_mode: bool):
-        """Handle chart display mode change - toggle between normal UI and MAX MODE panel"""
+        """Handle chart display mode change - switch between stacked pages"""
         print(f"[DEBUG] on_display_mode_changed called: is_max_mode={is_max_mode}")
 
         if is_max_mode:
-            # MAX MODE: Hide ALL normal UI, show independent MAX MODE panel
+            # MAX MODE: Switch to page 1 (full-screen chart)
             print("[DEBUG] Entering MAX MODE")
 
             # Sync current symbol and timeframe to MAX MODE chart
@@ -381,19 +396,16 @@ class MainWindow(QMainWindow):
             self.max_mode_chart.symbol_combo.setCurrentText(self.chart_panel.current_symbol)
             self.max_mode_chart.timeframe_combo.setCurrentText(self.chart_panel.current_timeframe)
 
-            # Hide normal UI
+            # Hide scanner, switch to MAX MODE page
             self.scanner_widget.setVisible(False)
-            self.main_splitter.setVisible(False)
-
-            # Show MAX MODE panel
-            self.max_mode_panel.setVisible(True)
+            self.mode_stack.setCurrentIndex(1)  # Switch to MAX MODE page
 
             # Update MAX MODE chart
             self.max_mode_chart.update_chart()
 
             self.status_label.setText("Chart: MAX MODE - Full Screen")
         else:
-            # SMALL MODE: Hide MAX MODE panel, show normal UI
+            # SMALL MODE: Switch to page 0 (dashboard)
             print("[DEBUG] Entering SMALL MODE")
 
             # Sync current symbol and timeframe back to normal chart
@@ -402,12 +414,9 @@ class MainWindow(QMainWindow):
             self.chart_panel.symbol_combo.setCurrentText(self.max_mode_chart.current_symbol)
             self.chart_panel.timeframe_combo.setCurrentText(self.max_mode_chart.current_timeframe)
 
-            # Hide MAX MODE panel
-            self.max_mode_panel.setVisible(False)
-
-            # Show normal UI
+            # Show scanner, switch to normal page
             self.scanner_widget.setVisible(True)
-            self.main_splitter.setVisible(True)
+            self.mode_stack.setCurrentIndex(0)  # Switch to normal dashboard page
 
             # Update normal chart
             self.chart_panel.update_chart()
