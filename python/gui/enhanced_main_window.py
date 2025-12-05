@@ -55,7 +55,7 @@ class EnhancedMainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize the enhanced user interface"""
-        self.setWindowTitle("AppleTrader Pro - Institutional Trading Robot v3.0")
+        self.setWindowTitle("")  # Empty title - user requested removal
         self.setGeometry(50, 50, 1920, 1080)  # Full HD size for better visibility
 
         # Create central widget
