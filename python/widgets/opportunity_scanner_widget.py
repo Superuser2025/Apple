@@ -171,8 +171,9 @@ class TimeframeGroup(QWidget):
         layout.addWidget(scroll)
 
     def update_opportunities(self, opportunities: List[Dict]):
-        """Update the opportunities - cards flow left to right in 4-column grid"""
-        self.opportunities = opportunities
+        """Update opportunities - LIMIT TO 12 CARDS MAX, 3 rows × 4 columns"""
+        # CRITICAL: Hard limit to 12 cards per timeframe section
+        self.opportunities = opportunities[:12]
 
         # Clear existing cards
         while self.grid_layout.count():
@@ -182,15 +183,25 @@ class TimeframeGroup(QWidget):
                 widget.setParent(None)
                 widget.deleteLater()
 
-        # Add new cards - left to right, 4 per row
+        # Add cards in 4-column grid (max 3 rows × 4 cols = 12 cards)
         for idx, opp in enumerate(self.opportunities):
             card = OpportunityCard(opp)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
             row = idx // 4  # 4 cards per row
-            col = idx % 4   # Column 0, 1, 2, or 3
+            col = idx % 4   # Columns 0, 1, 2, 3
 
             self.grid_layout.addWidget(card, row, col)
+
+        # Fill remaining slots with spacers if < 12 cards (for even layout)
+        for idx in range(len(self.opportunities), 12):
+            spacer = QWidget()
+            spacer.setMinimumHeight(105)
+            spacer.setMaximumHeight(110)
+            spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            row = idx // 4
+            col = idx % 4
+            self.grid_layout.addWidget(spacer, row, col)
 
 
 class OpportunityScannerWidget(QWidget):
