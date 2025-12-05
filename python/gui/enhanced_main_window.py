@@ -128,23 +128,9 @@ class EnhancedMainWindow(QMainWindow):
         # Title REMOVED - user requested removal
         # No green text needed, wasting space
 
+        # Time and connection status moved to chart toolbar (where "Chart Ready" was)
+        # No longer needed in top toolbar
         layout.addStretch()
-
-        # Time display
-        self.time_label = QLabel(datetime.now().strftime("%H:%M:%S"))
-        self.time_label.setFont(QFont("Arial", 10))
-        self.time_label.setStyleSheet("color: #94A3B8;")
-        layout.addWidget(self.time_label)
-
-        layout.addSpacing(20)
-
-        # Connection status
-        self.connection_label = QLabel("🔴 MT5: Disconnected")
-        self.connection_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        self.connection_label.setStyleSheet(
-            "color: #EF4444; background-color: #1E293B; padding: 5px 10px; border-radius: 5px;"
-        )
-        layout.addWidget(self.connection_label)
 
         return layout
 
@@ -391,9 +377,7 @@ class EnhancedMainWindow(QMainWindow):
 
     def update_all_data(self):
         """Update all widgets with latest data"""
-        # Update time display
-        if hasattr(self, 'time_label'):
-            self.time_label.setText(datetime.now().strftime("%H:%M:%S"))
+        # Time display now in chart panel, not needed here
 
         # Update institutional panel with sample data
         if hasattr(self, 'institutional_panel'):
@@ -407,17 +391,10 @@ class EnhancedMainWindow(QMainWindow):
 
     def on_mt5_connection_changed(self, connected: bool):
         """Handle MT5 connection status change"""
+        # Connection status now shown in chart panel, not in top toolbar
         if connected:
-            self.connection_label.setText("🟢 MT5: Connected")
-            self.connection_label.setStyleSheet(
-                "color: #10B981; background-color: #1E293B; padding: 5px 10px; border-radius: 5px;"
-            )
             self.status_label.setText("MT5 connection established")
         else:
-            self.connection_label.setText("🔴 MT5: Disconnected")
-            self.connection_label.setStyleSheet(
-                "color: #EF4444; background-color: #1E293B; padding: 5px 10px; border-radius: 5px;"
-            )
             self.status_label.setText("MT5 connection lost")
 
     def on_mt5_data_updated(self, data: dict):

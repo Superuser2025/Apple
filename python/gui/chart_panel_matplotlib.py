@@ -412,17 +412,34 @@ class ChartPanel(QWidget):
 
         layout.addStretch()
 
-        # Status label
-        self.status_label = QLabel("Chart Ready")
-        self.status_label.setStyleSheet(f"""
+        # Time display (moved from top toolbar)
+        self.time_label = QLabel(datetime.now().strftime("%H:%M:%S"))
+        self.time_label.setStyleSheet(f"""
             QLabel {{
-                color: {settings.theme.success};
+                color: {settings.theme.text_secondary};
                 font-size: {settings.theme.font_size_sm}px;
                 background: transparent;
                 border: none;
             }}
         """)
-        layout.addWidget(self.status_label)
+        layout.addWidget(self.time_label)
+
+        # Spacing between time and connection
+        layout.addSpacing(20)
+
+        # MT5 Connection status (moved from top toolbar)
+        self.connection_label = QLabel("🔴 MT5: Disconnected")
+        self.connection_label.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.danger};
+                font-size: {settings.theme.font_size_sm}px;
+                font-weight: bold;
+                background-color: {settings.theme.surface};
+                padding: 5px 10px;
+                border-radius: 5px;
+            }}
+        """)
+        layout.addWidget(self.connection_label)
 
         return toolbar
 
@@ -1678,6 +1695,37 @@ class ChartPanel(QWidget):
         """Update chart - reload data from MT5 to show new candles"""
 
         try:
+            # Update time display
+            if hasattr(self, 'time_label'):
+                self.time_label.setText(datetime.now().strftime("%H:%M:%S"))
+
+            # Update MT5 connection status
+            if hasattr(self, 'connection_label'):
+                if self.mt5_initialized and mt5.terminal_info() is not None:
+                    self.connection_label.setText("🟢 MT5: Connected")
+                    self.connection_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: {settings.theme.success};
+                            font-size: {settings.theme.font_size_sm}px;
+                            font-weight: bold;
+                            background-color: {settings.theme.surface};
+                            padding: 5px 10px;
+                            border-radius: 5px;
+                        }}
+                    """)
+                else:
+                    self.connection_label.setText("🔴 MT5: Disconnected")
+                    self.connection_label.setStyleSheet(f"""
+                        QLabel {{
+                            color: {settings.theme.danger};
+                            font-size: {settings.theme.font_size_sm}px;
+                            font-weight: bold;
+                            background-color: {settings.theme.surface};
+                            padding: 5px 10px;
+                            border-radius: 5px;
+                        }}
+                    """)
+
             # Skip update if we're currently loading new data (symbol/timeframe change)
             if self.is_loading:
                 return
@@ -1696,14 +1744,18 @@ class ChartPanel(QWidget):
 
         except Exception as e:
             print(f"[Chart] Error updating: {e}")
-            self.status_label.setText("Update Error")
-            self.status_label.setStyleSheet(f"""
-                QLabel {{
-                    color: {settings.theme.danger};
-                    font_size: {settings.theme.font_size_sm}px;
-                    background: transparent;
-                }}
-            """)
+            if hasattr(self, 'connection_label'):
+                self.connection_label.setText("🔴 MT5: Error")
+                self.connection_label.setStyleSheet(f"""
+                    QLabel {{
+                        color: {settings.theme.danger};
+                        font-size: {settings.theme.font_size_sm}px;
+                        font-weight: bold;
+                        background-color: {settings.theme.surface};
+                        padding: 5px 10px;
+                        border-radius: 5px;
+                    }}
+                """)
 
     def on_timeframe_changed(self, timeframe: str):
         """Handle timeframe change"""
