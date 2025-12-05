@@ -351,6 +351,12 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'commentary_widget'):
             self.commentary_widget.set_symbol(symbol)
 
+        if hasattr(self, 'momentum_widget'):
+            self.momentum_widget.set_symbol(symbol)
+
+        if hasattr(self, 'correlation_widget'):
+            self.correlation_widget.set_symbol(symbol)
+
         if hasattr(self, 'position_widget'):
             self.position_widget.set_symbol(symbol)
 
@@ -362,6 +368,15 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, 'structure_widget'):
             self.structure_widget.set_symbol(symbol)
+
+        if hasattr(self, 'news_widget'):
+            self.news_widget.set_symbol(symbol)
+
+        if hasattr(self, 'equity_widget'):
+            self.equity_widget.set_symbol(symbol)
+
+        if hasattr(self, 'journal_widget'):
+            self.journal_widget.set_symbol(symbol)
 
         # Request fresh data for this symbol from MT5
         self.update_all_data()
@@ -417,9 +432,12 @@ class MainWindow(QMainWindow):
                 }}
             """)
 
-            # Hide scanner, switch to MAX MODE page
+            # CRITICAL: Hide scanner AND controls panel for true full-screen
             self.scanner_widget.setVisible(False)
-            self.mode_stack.setCurrentIndex(1)  # Switch to MAX MODE page
+            self.controls_panel.setVisible(False)
+
+            # Switch to MAX MODE page
+            self.mode_stack.setCurrentIndex(1)
 
             # Update MAX MODE chart
             self.max_mode_chart.update_chart()
@@ -456,8 +474,9 @@ class MainWindow(QMainWindow):
                 }}
             """)
 
-            # Show scanner, switch to normal page
+            # Show scanner AND controls panel, switch to normal page
             self.scanner_widget.setVisible(True)
+            self.controls_panel.setVisible(True)
             self.mode_stack.setCurrentIndex(0)  # Switch to normal dashboard page
 
             # Update normal chart
