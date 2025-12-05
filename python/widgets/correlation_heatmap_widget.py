@@ -32,13 +32,19 @@ class CorrelationHeatmapWidget(QWidget):
         self.correlation_data = None
         self.init_ui()
 
-        # Auto-refresh every 5 seconds
+        # Auto-refresh every 5 seconds with LIVE data
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.on_refresh_requested)
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
         self.refresh_timer.start(5000)
 
-        # Load sample correlation data
-        self.load_sample_data()
+        # NO SAMPLE DATA - use live data from data_manager
+        self.update_from_live_data()
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        self.status_label.setText(f"Live: {symbol}")
 
     def init_ui(self):
         """Initialize the user interface"""

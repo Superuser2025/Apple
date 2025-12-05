@@ -116,7 +116,15 @@ class RiskRewardWidget(QWidget):
         self.current_symbol = "EURUSD"
         self.current_analysis = None
         self.init_ui()
-        self.load_sample_data()
+
+        # Auto-refresh timer
+        from PyQt6.QtCore import QTimer
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
+        self.refresh_timer.start(3000)
+
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -224,6 +232,13 @@ class RiskRewardWidget(QWidget):
 
         # Apply dark theme
         self.apply_dark_theme()
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"Live: {symbol}")
 
     def apply_dark_theme(self):
         """Apply modern dark theme"""

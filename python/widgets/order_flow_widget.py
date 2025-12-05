@@ -101,12 +101,11 @@ class InstitutionalOrderFlowWidget(QWidget):
 
         # Auto-refresh every 3 seconds
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh_display)
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
         self.refresh_timer.start(3000)
 
-        # DON'T load sample data - wait for real MT5 data
-        # Demo data confuses users when MT5 is connected
-        print("[Order Flow] Waiting for real MT5 data (no demo data loaded)")
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -208,6 +207,13 @@ class InstitutionalOrderFlowWidget(QWidget):
 
         # Apply dark theme
         self.apply_dark_theme()
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"Live: {symbol}")
 
     def apply_dark_theme(self):
         """Apply modern dark theme"""

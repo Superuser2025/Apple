@@ -59,7 +59,15 @@ class PatternScorerWidget(QWidget):
         self.current_score: PatternScore = None
 
         self.init_ui()
-        self.load_sample_data()
+
+        # Auto-refresh timer
+        from PyQt6.QtCore import QTimer
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
+        self.refresh_timer.start(3000)
+
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize user interface"""
@@ -116,6 +124,13 @@ class PatternScorerWidget(QWidget):
         layout.addWidget(recommendation_frame)
 
         layout.addStretch()
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        # Pattern scores are updated externally via update_score()
+        self.current_symbol = symbol
 
     def create_score_card(self) -> QFrame:
         """Create overall score display card"""

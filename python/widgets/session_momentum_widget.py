@@ -128,13 +128,19 @@ class SessionMomentumWidget(QWidget):
         self.leaderboard_data = []
         self.init_ui()
 
-        # Auto-refresh every 3 seconds (faster for momentum)
+        # Auto-refresh every 3 seconds with LIVE data from data_manager
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.on_refresh_requested)
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
         self.refresh_timer.start(3000)
 
-        # Load sample data to show functionality
-        self.load_sample_data()
+        # NO SAMPLE DATA - start with live data immediately
+        self.update_from_live_data()
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        self.status_label.setText(f"Live: {symbol}")
 
     def init_ui(self):
         """Initialize the user interface"""

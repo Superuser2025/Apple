@@ -94,13 +94,13 @@ class EquityCurveWidget(QWidget):
         super().__init__(parent)
         self.init_ui()
 
-        # Load sample data for demonstration
-        self.load_sample_data()
-
         # Auto-refresh every 2 seconds
         self.refresh_timer = QTimer()
-        self.refresh_timer.timeout.connect(self.refresh_display)
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
         self.refresh_timer.start(2000)
+
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -302,6 +302,13 @@ class EquityCurveWidget(QWidget):
                 border-radius: 2px;
             }
         """)
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        # Equity data is managed internally, just refresh display
+        self.refresh_display()
 
     def load_sample_data(self):
         """Load sample trades for demonstration"""

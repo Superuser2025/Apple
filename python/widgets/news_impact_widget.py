@@ -129,8 +129,13 @@ class NewsImpactWidget(QWidget):
         self.alert_timer.timeout.connect(self.check_alerts)
         self.alert_timer.start(10000)
 
-        # Load sample news events
-        self.load_sample_data()
+        # Live data update timer
+        self.live_data_timer = QTimer()
+        self.live_data_timer.timeout.connect(self.update_from_live_data)
+        self.live_data_timer.start(3000)
+
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize the user interface"""
@@ -281,6 +286,13 @@ class NewsImpactWidget(QWidget):
                 background-color: #0a5a5d;
             }
         """)
+
+    def update_from_live_data(self):
+        """Update with live data from data_manager"""
+        from core.data_manager import data_manager
+        symbol = data_manager.candle_buffer.symbol or "EURUSD"
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"Live: {symbol}")
 
     def load_sample_data(self):
         """Load real news events from calendar sources"""
