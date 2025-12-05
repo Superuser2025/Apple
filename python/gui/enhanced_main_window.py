@@ -78,8 +78,8 @@ class EnhancedMainWindow(QMainWindow):
         main_layout.addWidget(self.scanner_widget)
 
         # === MAIN CONTENT (3-COLUMN LAYOUT) ===
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.setHandleWidth(3)  # Make splitter handle visible and draggable
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.setHandleWidth(3)  # Make splitter handle visible and draggable
 
         # LEFT COLUMN: Merged Institutional Panel (Fully Resizable!)
         self.institutional_panel = MergedInstitutionalPanel()
@@ -91,26 +91,26 @@ class EnhancedMainWindow(QMainWindow):
         self.institutional_panel.setting_changed.connect(self.on_setting_changed)
         self.institutional_panel.order_requested.connect(self.on_order_requested)
 
-        splitter.addWidget(self.institutional_panel)
+        self.splitter.addWidget(self.institutional_panel)
 
         # CENTER COLUMN: Chart + Analysis Tabs (No controls panel - merged into left!)
-        center_panel = self.create_center_panel()
-        splitter.addWidget(center_panel)
+        self.center_panel = self.create_center_panel()
+        self.splitter.addWidget(self.center_panel)
 
         # RIGHT COLUMN: Performance Tabs
-        right_panel = self.create_right_panel()
-        splitter.addWidget(right_panel)
+        self.right_panel = self.create_right_panel()
+        self.splitter.addWidget(self.right_panel)
 
         # Set initial column widths (user can resize any time!)
         # Left: 450px, Center: 810px, Right: 540px (totals 1800px)
-        splitter.setSizes([450, 870, 480])
+        self.splitter.setSizes([450, 870, 480])
 
         # Make splitter stretchable
-        splitter.setStretchFactor(0, 1)  # Left can stretch
-        splitter.setStretchFactor(1, 2)  # Center gets more stretch priority
-        splitter.setStretchFactor(2, 1)  # Right can stretch
+        self.splitter.setStretchFactor(0, 1)  # Left can stretch
+        self.splitter.setStretchFactor(1, 2)  # Center gets more stretch priority
+        self.splitter.setStretchFactor(2, 1)  # Right can stretch
 
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.splitter)
 
         # === STATUS BAR ===
         self.create_status_bar()
@@ -144,55 +144,56 @@ class EnhancedMainWindow(QMainWindow):
         self.chart_panel = ChartPanel()  # The original excellent implementation!
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
         self.chart_panel.symbol_changed.connect(self.on_symbol_changed)  # CRITICAL: Connect symbol changes!
+        self.chart_panel.display_mode_changed.connect(self.on_display_mode_changed)  # CRITICAL: Connect MAX MODE!
         layout.addWidget(self.chart_panel, 2)  # 50% height (more space now!)
 
         # === ANALYSIS TABS ===
-        tabs = QTabWidget()
-        tabs.setTabPosition(QTabWidget.TabPosition.North)
+        self.analysis_tabs = QTabWidget()
+        self.analysis_tabs.setTabPosition(QTabWidget.TabPosition.North)
 
         # Tab 1: PRICE ACTION COMMENTARY
         commentary_tab = QWidget()
         commentary_layout = QVBoxLayout(commentary_tab)
         self.commentary_widget = PriceActionCommentaryWidget()
         commentary_layout.addWidget(self.commentary_widget)
-        tabs.addTab(commentary_tab, "📊 Price Action")
+        self.analysis_tabs.addTab(commentary_tab, "📊 Price Action")
 
         # Tab 2: Momentum
         momentum_tab = QWidget()
         momentum_layout = QVBoxLayout(momentum_tab)
         self.momentum_widget = SessionMomentumWidget()
         momentum_layout.addWidget(self.momentum_widget)
-        tabs.addTab(momentum_tab, "⚡ Momentum")
+        self.analysis_tabs.addTab(momentum_tab, "⚡ Momentum")
 
         # Tab 3: Correlation
         correlation_tab = QWidget()
         correlation_layout = QVBoxLayout(correlation_tab)
         self.correlation_widget = CorrelationHeatmapWidget()
         correlation_layout.addWidget(self.correlation_widget)
-        tabs.addTab(correlation_tab, "🔥 Correlation")
+        self.analysis_tabs.addTab(correlation_tab, "🔥 Correlation")
 
         # Tab 4: Structure
         structure_tab = QWidget()
         structure_layout = QVBoxLayout(structure_tab)
         self.structure_widget = MTFStructureWidget()
         structure_layout.addWidget(self.structure_widget)
-        tabs.addTab(structure_tab, "📊 Structure")
+        self.analysis_tabs.addTab(structure_tab, "📊 Structure")
 
         # Tab 5: Order Flow
         orderflow_tab = QWidget()
         orderflow_layout = QVBoxLayout(orderflow_tab)
         self.orderflow_widget = InstitutionalOrderFlowWidget()
         orderflow_layout.addWidget(self.orderflow_widget)
-        tabs.addTab(orderflow_tab, "💼 Order Flow")
+        self.analysis_tabs.addTab(orderflow_tab, "💼 Order Flow")
 
         # Tab 6: News
         news_tab = QWidget()
         news_layout = QVBoxLayout(news_tab)
         self.news_widget = NewsImpactWidget()
         news_layout.addWidget(self.news_widget)
-        tabs.addTab(news_tab, "📰 News")
+        self.analysis_tabs.addTab(news_tab, "📰 News")
 
-        layout.addWidget(tabs, 1)  # 20% height
+        layout.addWidget(self.analysis_tabs, 1)  # 20% height
 
         return widget
 
@@ -206,35 +207,35 @@ class EnhancedMainWindow(QMainWindow):
         sizing_layout = QVBoxLayout(sizing_tab)
         self.position_widget = VolatilityPositionWidget()
         sizing_layout.addWidget(self.position_widget)
-        tabs.addTab(sizing_tab, "🎯 Position Size")
+        self.analysis_tabs.addTab(sizing_tab, "🎯 Position Size")
 
         # Tab 2: Risk-Reward
         rr_tab = QWidget()
         rr_layout = QVBoxLayout(rr_tab)
         self.rr_widget = RiskRewardWidget()
         rr_layout.addWidget(self.rr_widget)
-        tabs.addTab(rr_tab, "🎯 Risk-Reward")
+        self.analysis_tabs.addTab(rr_tab, "🎯 Risk-Reward")
 
         # Tab 3: Pattern Scorer
         pattern_tab = QWidget()
         pattern_layout = QVBoxLayout(pattern_tab)
         self.pattern_widget = PatternScorerWidget()
         pattern_layout.addWidget(self.pattern_widget)
-        tabs.addTab(pattern_tab, "⭐ Quality")
+        self.analysis_tabs.addTab(pattern_tab, "⭐ Quality")
 
         # Tab 4: Equity Curve
         equity_tab = QWidget()
         equity_layout = QVBoxLayout(equity_tab)
         self.equity_widget = EquityCurveWidget()
         equity_layout.addWidget(self.equity_widget)
-        tabs.addTab(equity_tab, "📊 Equity")
+        self.analysis_tabs.addTab(equity_tab, "📊 Equity")
 
         # Tab 5: Trade Journal
         journal_tab = QWidget()
         journal_layout = QVBoxLayout(journal_tab)
         self.journal_widget = TradeJournalWidget()
         journal_layout.addWidget(self.journal_widget)
-        tabs.addTab(journal_tab, "📝 Journal")
+        self.analysis_tabs.addTab(journal_tab, "📝 Journal")
 
         return tabs
 
@@ -297,6 +298,45 @@ class EnhancedMainWindow(QMainWindow):
         self.current_timeframe = timeframe
         self.status_label.setText(f"Timeframe changed to: {timeframe}")
         self.update_all_data()
+
+    def on_display_mode_changed(self, is_max_mode: bool):
+        """Handle MAX MODE toggle - hide/show panels to maximize chart"""
+        print(f"[DEBUG] MAX MODE toggled: is_max_mode={is_max_mode}")
+
+        if is_max_mode:
+            # MAX MODE: Hide EVERYTHING except the chart
+            print("[DEBUG] Entering MAX MODE - hiding all panels")
+
+            # Hide scanner at top
+            self.scanner_widget.setVisible(False)
+
+            # Hide analysis tabs below chart
+            self.analysis_tabs.setVisible(False)
+
+            # Hide left institutional panel
+            self.institutional_panel.setVisible(False)
+
+            # Hide right panel (position sizing, etc.)
+            self.right_panel.setVisible(False)
+
+            print("[DEBUG] MAX MODE active - chart should fill entire blue rectangle")
+        else:
+            # SMALL MODE: Show everything again
+            print("[DEBUG] Exiting MAX MODE - showing all panels")
+
+            # Show scanner
+            self.scanner_widget.setVisible(True)
+
+            # Show analysis tabs
+            self.analysis_tabs.setVisible(True)
+
+            # Show left panel
+            self.institutional_panel.setVisible(True)
+
+            # Show right panel
+            self.right_panel.setVisible(True)
+
+            print("[DEBUG] SMALL MODE active - normal layout restored")
 
     def on_filter_toggled(self, filter_name: str, enabled: bool):
         """Handle filter toggle from institutional panel"""
