@@ -56,7 +56,7 @@ class MainWindow(QMainWindow):
 
     def init_ui(self):
         """Initialize the user interface"""
-        # NO WINDOW TITLE - removed as requested
+        self.setWindowTitle("")  # Empty title - no text shown
         self.setGeometry(100, 100, 1600, 1000)
 
         # Create central widget
