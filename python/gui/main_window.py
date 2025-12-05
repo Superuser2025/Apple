@@ -396,6 +396,27 @@ class MainWindow(QMainWindow):
             self.max_mode_chart.symbol_combo.setCurrentText(self.chart_panel.current_symbol)
             self.max_mode_chart.timeframe_combo.setCurrentText(self.chart_panel.current_timeframe)
 
+            # CRITICAL: Sync the is_max_mode state and button on MAX MODE chart
+            self.max_mode_chart.is_max_mode = True
+            self.max_mode_chart.display_toggle_btn.setText("⊟ SMALL MODE")
+            self.max_mode_chart.display_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #EF4444;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+                QPushButton:pressed {{
+                    background-color: #B91C1C;
+                }}
+            """)
+
             # Hide scanner, switch to MAX MODE page
             self.scanner_widget.setVisible(False)
             self.mode_stack.setCurrentIndex(1)  # Switch to MAX MODE page
@@ -413,6 +434,27 @@ class MainWindow(QMainWindow):
             self.chart_panel.current_timeframe = self.max_mode_chart.current_timeframe
             self.chart_panel.symbol_combo.setCurrentText(self.max_mode_chart.current_symbol)
             self.chart_panel.timeframe_combo.setCurrentText(self.max_mode_chart.current_timeframe)
+
+            # CRITICAL: Sync the is_max_mode state and button on normal chart
+            self.chart_panel.is_max_mode = False
+            self.chart_panel.display_toggle_btn.setText("⛶ MAX MODE")
+            self.chart_panel.display_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #3B82F6;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #2563EB;
+                }}
+                QPushButton:pressed {{
+                    background-color: #1E40AF;
+                }}
+            """)
 
             # Show scanner, switch to normal page
             self.scanner_widget.setVisible(True)
