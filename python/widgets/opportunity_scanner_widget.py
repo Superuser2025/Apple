@@ -23,8 +23,12 @@ class OpportunityCard(QFrame):
 
     def init_ui(self):
         """Initialize the opportunity card UI"""
-        self.setFixedHeight(105)  # Compact height for better stacking
-        self.setFixedWidth(250)   # Width for 4 per row
+        self.setMinimumHeight(105)
+        self.setMaximumHeight(110)
+        self.setSizePolicy(
+            self.sizePolicy().Policy.Expanding,
+            self.sizePolicy().Policy.Fixed
+        )
         self.setFrameShape(QFrame.Shape.StyledPanel)
 
         # Color based on quality score
@@ -289,7 +293,7 @@ class OpportunityScannerWidget(QWidget):
         self.apply_dark_theme()
 
     def apply_dark_theme(self):
-        """Apply dark theme"""
+        """Apply dark theme - NO WHITE BACKGROUNDS"""
         self.setStyleSheet("""
             OpportunityScannerWidget {
                 background-color: #0A0E27;
@@ -297,6 +301,13 @@ class OpportunityScannerWidget(QWidget):
             }
             QLabel {
                 background-color: transparent;
+            }
+            QWidget {
+                background-color: #0A0E27;
+            }
+            QScrollArea {
+                background-color: #0A0E27;
+                border: none;
             }
         """)
 

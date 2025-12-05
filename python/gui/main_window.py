@@ -80,24 +80,24 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.scanner_widget)
 
         # === MAIN CONTENT (3 COLUMNS) ===
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # LEFT COLUMN: Chart + Controls
         left_panel = self.create_left_panel()
-        splitter.addWidget(left_panel)
+        self.main_splitter.addWidget(left_panel)
 
         # CENTER COLUMN: Analysis Tabs
-        center_panel = self.create_center_panel()
-        splitter.addWidget(center_panel)
+        self.center_panel = self.create_center_panel()
+        self.main_splitter.addWidget(self.center_panel)
 
         # RIGHT COLUMN: Performance Tabs
-        right_panel = self.create_right_panel()
-        splitter.addWidget(right_panel)
+        self.right_panel = self.create_right_panel()
+        self.main_splitter.addWidget(self.right_panel)
 
         # Set column widths (40% left, 35% center, 25% right)
-        splitter.setSizes([640, 560, 400])
+        self.main_splitter.setSizes([640, 560, 400])
 
-        main_layout.addWidget(splitter)
+        main_layout.addWidget(self.main_splitter)
 
         # === STATUS BAR ===
         self.create_status_bar()
@@ -327,12 +327,16 @@ class MainWindow(QMainWindow):
     def on_display_mode_changed(self, is_max_mode: bool):
         """Handle chart display mode change"""
         if is_max_mode:
-            # MAX MODE: Hide controls panel to show chart full screen
+            # MAX MODE: Hide controls, center, and right panels - chart fills all central area
             self.controls_panel.setVisible(False)
+            self.center_panel.setVisible(False)
+            self.right_panel.setVisible(False)
             self.status_label.setText("Chart: MAX MODE")
         else:
-            # SMALL MODE: Show controls panel
+            # SMALL MODE: Show all panels
             self.controls_panel.setVisible(True)
+            self.center_panel.setVisible(True)
+            self.right_panel.setVisible(True)
             self.status_label.setText("Chart: SMALL MODE")
 
     def update_all_data(self):

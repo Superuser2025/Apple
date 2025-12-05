@@ -331,6 +331,85 @@ class ChartPanel(QWidget):
         """)
         layout.addWidget(self.display_toggle_btn)
 
+        layout.addSpacing(20)
+
+        # Performance metrics
+        perf_label = QLabel("Performance:")
+        perf_label.setStyleSheet(f"""
+            QLabel {{
+                color: {settings.theme.text_secondary};
+                font-size: {settings.theme.font_size_sm}px;
+                background: transparent;
+                border: none;
+            }}
+        """)
+        layout.addWidget(perf_label)
+
+        self.perf_today_label = QLabel("Day: +2.3%")
+        self.perf_today_label.setStyleSheet("""
+            QLabel {
+                color: #10B981;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                padding: 3px 8px;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.perf_today_label)
+
+        self.perf_h1_label = QLabel("H1: +1.2%")
+        self.perf_h1_label.setStyleSheet("""
+            QLabel {
+                color: #10B981;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                padding: 3px 8px;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.perf_h1_label)
+
+        self.perf_h4_label = QLabel("H4: +3.5%")
+        self.perf_h4_label.setStyleSheet("""
+            QLabel {
+                color: #10B981;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                padding: 3px 8px;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.perf_h4_label)
+
+        self.perf_week_label = QLabel("Week: +8.7%")
+        self.perf_week_label.setStyleSheet("""
+            QLabel {
+                color: #10B981;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                padding: 3px 8px;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.perf_week_label)
+
+        self.perf_month_label = QLabel("Month: +15.2%")
+        self.perf_month_label.setStyleSheet("""
+            QLabel {
+                color: #10B981;
+                font-size: 11px;
+                font-weight: bold;
+                background: transparent;
+                padding: 3px 8px;
+                border-radius: 3px;
+            }
+        """)
+        layout.addWidget(self.perf_month_label)
+
         layout.addStretch()
 
         # Status label
