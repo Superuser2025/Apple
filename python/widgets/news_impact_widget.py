@@ -287,6 +287,13 @@ class NewsImpactWidget(QWidget):
             }
         """)
 
+    def set_symbol(self, symbol: str):
+        """Update the current symbol and refresh display"""
+        self.current_symbol = symbol
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"Live: {symbol}")
+        self.update_from_live_data()
+
     def update_from_live_data(self):
         """Update with live data from data_manager"""
         from core.data_manager import data_manager

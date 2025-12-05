@@ -157,6 +157,7 @@ class EnhancedMainWindow(QMainWindow):
         # === ORIGINAL EXCELLENT CHART (TradingView-style with zones!) ===
         self.chart_panel = ChartPanel()  # The original excellent implementation!
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
+        self.chart_panel.symbol_changed.connect(self.on_symbol_changed)  # CRITICAL: Connect symbol changes!
         layout.addWidget(self.chart_panel, 2)  # 50% height (more space now!)
 
         # === ANALYSIS TABS ===
@@ -264,13 +265,44 @@ class EnhancedMainWindow(QMainWindow):
         )
 
     def on_symbol_changed(self, symbol: str):
-        """Handle symbol change"""
+        """Handle symbol change - MUST UPDATE ALL WIDGETS"""
         self.current_symbol = symbol
         self.status_label.setText(f"Symbol changed to: {symbol}")
 
-        # Update all widgets with new symbol
+        # Update ALL analysis tab widgets with new symbol
+        if hasattr(self, 'commentary_widget'):
+            self.commentary_widget.set_symbol(symbol)
+
+        if hasattr(self, 'momentum_widget'):
+            self.momentum_widget.set_symbol(symbol)
+
+        if hasattr(self, 'correlation_widget'):
+            self.correlation_widget.set_symbol(symbol)
+
+        if hasattr(self, 'structure_widget'):
+            self.structure_widget.set_symbol(symbol)
+
         if hasattr(self, 'orderflow_widget'):
             self.orderflow_widget.set_symbol(symbol)
+
+        if hasattr(self, 'news_widget'):
+            self.news_widget.set_symbol(symbol)
+
+        # Update ALL right panel widgets with new symbol
+        if hasattr(self, 'position_widget'):
+            self.position_widget.set_symbol(symbol)
+
+        if hasattr(self, 'rr_widget'):
+            self.rr_widget.set_symbol(symbol)
+
+        if hasattr(self, 'pattern_widget'):
+            self.pattern_widget.set_symbol(symbol)
+
+        if hasattr(self, 'equity_widget'):
+            self.equity_widget.set_symbol(symbol)
+
+        if hasattr(self, 'journal_widget'):
+            self.journal_widget.set_symbol(symbol)
 
         self.update_all_data()
 
