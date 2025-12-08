@@ -222,11 +222,11 @@ class PriceActionCommentaryWidget(QWidget):
     def get_market_data(self) -> Dict:
         """Get current market data for analysis"""
         try:
-            # Get data from data manager
-            candles = data_manager.get_candles(self.current_symbol)
+            # Get data from data manager (uses currently loaded symbol in buffer)
+            candles = data_manager.get_candles()
 
             if not candles or len(candles) < 10:
-                # Return sample data
+                # Return sample data WITH CURRENT SYMBOL NAME
                 return self.get_sample_market_data()
 
             current = candles[-1]
@@ -247,6 +247,7 @@ class PriceActionCommentaryWidget(QWidget):
             volatility = "HIGH" if high_low_range > avg_range * 1.5 else "NORMAL"
 
             return {
+                'symbol': self.current_symbol,  # Add symbol to data
                 'price': price,
                 'price_change': price_change,
                 'price_change_pct': price_change_pct,
@@ -261,11 +262,12 @@ class PriceActionCommentaryWidget(QWidget):
             return self.get_sample_market_data()
 
     def get_sample_market_data(self) -> Dict:
-        """Generate sample market data for demonstration"""
+        """Generate sample market data - USE CURRENT SYMBOL NAME"""
         base_price = 1.16104
         price_change = random.uniform(-0.0005, 0.0005)
 
         return {
+            'symbol': self.current_symbol,  # Show correct symbol!
             'price': base_price + price_change,
             'price_change': price_change,
             'price_change_pct': (price_change / base_price) * 100,
@@ -278,21 +280,22 @@ class PriceActionCommentaryWidget(QWidget):
 
     def generate_market_narrative(self, data: Dict) -> str:
         """Generate current market narrative"""
+        symbol = data.get('symbol', self.current_symbol)
         price = data['price']
         trend = data['trend']
         volatility = data['volatility']
         price_change_pct = data['price_change_pct']
 
-        # Main narrative
+        # Main narrative with SYMBOL NAME
         if trend == "BULLISH":
             trend_text = f"<span style='color: #10B981; font-weight: bold;'>BULLISH</span>"
-            narrative = f"Price is currently in a <b>{trend_text}</b> trend, showing strong upward momentum. "
+            narrative = f"<b>{symbol}</b>: Price is currently in a <b>{trend_text}</b> trend, showing strong upward momentum. "
         elif trend == "BEARISH":
             trend_text = f"<span style='color: #EF4444; font-weight: bold;'>BEARISH</span>"
-            narrative = f"Price is currently in a <b>{trend_text}</b> trend, showing downward pressure. "
+            narrative = f"<b>{symbol}</b>: Price is currently in a <b>{trend_text}</b> trend, showing downward pressure. "
         else:
             trend_text = f"<span style='color: #F59E0B; font-weight: bold;'>NEUTRAL</span>"
-            narrative = f"Price is currently <b>{trend_text}</b>, consolidating in a range. "
+            narrative = f"<b>{symbol}</b>: Price is currently <b>{trend_text}</b>, consolidating in a range. "
 
         # Add volatility context
         if volatility == "HIGH":
