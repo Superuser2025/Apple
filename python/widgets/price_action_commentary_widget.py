@@ -273,9 +273,36 @@ class PriceActionCommentaryWidget(QWidget):
             return self.get_sample_market_data()
 
     def get_sample_market_data(self) -> Dict:
-        """Generate sample market data - USE CURRENT SYMBOL NAME"""
-        base_price = 1.16104
-        price_change = random.uniform(-0.0005, 0.0005)
+        """Generate sample market data - USE CURRENT SYMBOL NAME AND APPROPRIATE PRICE RANGE"""
+        # CRITICAL: Use appropriate price range for each symbol!
+        symbol = self.current_symbol
+
+        # Determine base price and range based on symbol
+        if 'JPY' in symbol:
+            # JPY pairs trade around 100-160 range
+            base_price = 155.0 if 'USD' in symbol else 145.0
+            price_change = random.uniform(-0.05, 0.05)  # Bigger pip range for JPY
+            range_size = 0.15
+        elif 'GBP' in symbol:
+            # GBP pairs trade around 1.2-1.3 range
+            base_price = 1.27
+            price_change = random.uniform(-0.0005, 0.0005)
+            range_size = 0.0015
+        elif 'EUR' in symbol:
+            # EUR pairs trade around 1.0-1.1 range
+            base_price = 1.08
+            price_change = random.uniform(-0.0005, 0.0005)
+            range_size = 0.0015
+        elif 'AUD' in symbol or 'NZD' in symbol:
+            # AUD/NZD pairs trade around 0.6-0.7 range
+            base_price = 0.66
+            price_change = random.uniform(-0.0003, 0.0003)
+            range_size = 0.001
+        else:
+            # Default for other pairs
+            base_price = 1.16
+            price_change = random.uniform(-0.0005, 0.0005)
+            range_size = 0.0015
 
         return {
             'symbol': self.current_symbol,  # Show correct symbol!
@@ -284,9 +311,9 @@ class PriceActionCommentaryWidget(QWidget):
             'price_change_pct': (price_change / base_price) * 100,
             'trend': random.choice(['BULLISH', 'BEARISH', 'NEUTRAL']),
             'volatility': random.choice(['HIGH', 'NORMAL', 'LOW']),
-            'high': base_price + abs(price_change) + 0.0003,
-            'low': base_price - abs(price_change) - 0.0003,
-            'sma_20': base_price - 0.0001
+            'high': base_price + abs(price_change) + range_size,
+            'low': base_price - abs(price_change) - range_size,
+            'sma_20': base_price - (price_change * 0.5)
         }
 
     def generate_market_narrative(self, data: Dict) -> str:
