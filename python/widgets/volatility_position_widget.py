@@ -31,13 +31,18 @@ class VolatilityPositionWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_symbol = None
+        self.current_symbol = "EURUSD"
         self.current_data = None
         self.init_ui()
 
-        # Load sample market conditions and calculate
-        self.load_sample_conditions()
-        self.calculate_position()
+        # Auto-refresh timer to get live data
+        from PyQt6.QtCore import QTimer
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.update_from_live_data)
+        self.refresh_timer.start(3000)  # Refresh every 3 seconds
+
+        # Initial update with live data
+        self.update_from_live_data()
 
     def init_ui(self):
         """Initialize the user interface"""
