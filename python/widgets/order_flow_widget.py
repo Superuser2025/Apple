@@ -95,7 +95,10 @@ class InstitutionalOrderFlowWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_symbol = None
+
+        # CRITICAL: Initialize current_symbol to default value
+        self.current_symbol = "EURUSD"
+
         self.using_real_data = False  # Track if we're using real or demo data
         self.init_ui()
 

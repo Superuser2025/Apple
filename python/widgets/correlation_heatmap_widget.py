@@ -29,6 +29,10 @@ class CorrelationHeatmapWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # CRITICAL: Initialize current_symbol BEFORE calling update_from_live_data
+        self.current_symbol = "EURUSD"
+
         self.correlation_data = None
         self.init_ui()
 

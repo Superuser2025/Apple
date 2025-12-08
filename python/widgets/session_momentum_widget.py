@@ -126,6 +126,10 @@ class SessionMomentumWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.leaderboard_data = []
+
+        # CRITICAL: Initialize current_symbol BEFORE calling update_from_live_data
+        self.current_symbol = "EURUSD"
+
         self.init_ui()
 
         # Auto-refresh every 3 seconds with LIVE data from data_manager
