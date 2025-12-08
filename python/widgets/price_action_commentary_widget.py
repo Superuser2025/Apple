@@ -220,6 +220,13 @@ class PriceActionCommentaryWidget(QWidget):
         """Update the current symbol and refresh commentary"""
         if symbol != self.current_symbol:
             self.current_symbol = symbol
+
+            # CRITICAL: Clear the commentary feed when symbol changes!
+            self.commentary_feed.clear()
+
+            # Clear commentary history
+            self.commentary_history = []
+
             # Immediate refresh with new symbol
             self.update_commentary()
 
