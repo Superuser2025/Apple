@@ -236,9 +236,32 @@ class RiskRewardWidget(QWidget):
     def update_from_live_data(self):
         """Update with live data from data_manager"""
         from core.data_manager import data_manager
+
+        # Get candles from data_manager (uses currently loaded symbol)
+        candles = data_manager.get_candles(count=200)
+
+        if not candles:
+            print(f"[RiskReward] No data available from data_manager")
+            return
+
+        # Convert to DataFrame for analysis
+        import pandas as pd
+        df = pd.DataFrame(candles)
+
+        # Extract structure levels from the data (support/resistance)
+        # For now, use high/low of recent candles as proxy for structure
+        if len(df) >= 50:
+            recent = df.tail(50)
+            self.structure_levels = {
+                'resistance': [recent['high'].max()],
+                'support': [recent['low'].min()]
+            }
+
         symbol = self.current_symbol
         if hasattr(self, 'status_label'):
             self.status_label.setText(f"Live: {symbol}")
+
+        print(f"[RiskReward] Updated with {len(candles)} candles for {symbol}")
 
     def apply_dark_theme(self):
         """Apply modern dark theme"""

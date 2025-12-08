@@ -285,12 +285,30 @@ class VolatilityPositionWidget(QWidget):
         self.update_market_conditions()
 
     def set_symbol(self, symbol: str):
-        """Update current symbol and refresh if data available"""
+        """Update current symbol and refresh with live data from data_manager"""
         if symbol != self.current_symbol:
             self.current_symbol = symbol
-            # Refresh display if we have data
-            if self.current_data is not None:
-                self.update_market_conditions()
+            # CRITICAL: Get live data from data_manager!
+            self.update_from_live_data()
+
+    def update_from_live_data(self):
+        """Get live data from data_manager and update position sizing"""
+        from core.data_manager import data_manager
+
+        # Get candles from data_manager (uses currently loaded symbol)
+        candles = data_manager.get_candles(count=100)
+
+        if not candles:
+            print(f"[VolatilityPosition] No data available from data_manager")
+            return
+
+        # Convert to DataFrame
+        df = pd.DataFrame(candles)
+
+        # Set the market data (this will trigger calculations)
+        self.set_market_data(self.current_symbol, df)
+
+        print(f"[VolatilityPosition] Updated with {len(candles)} candles for {self.current_symbol}")
 
     def update_market_conditions(self):
         """Update volatility and trend displays"""

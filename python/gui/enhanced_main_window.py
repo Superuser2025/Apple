@@ -145,7 +145,7 @@ class EnhancedMainWindow(QMainWindow):
         self.chart_panel.timeframe_changed.connect(self.on_timeframe_changed)
         self.chart_panel.symbol_changed.connect(self.on_symbol_changed)  # CRITICAL: Connect symbol changes!
         self.chart_panel.display_mode_changed.connect(self.on_display_mode_changed)  # CRITICAL: Connect MAX MODE!
-        layout.addWidget(self.chart_panel, 2)  # 50% height (more space now!)
+        layout.addWidget(self.chart_panel, 4)  # 80% height - give chart MORE space!
 
         # === ANALYSIS TABS ===
         self.analysis_tabs = QTabWidget()
