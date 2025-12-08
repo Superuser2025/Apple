@@ -507,6 +507,13 @@ class ChartPanel(QWidget):
                 }
                 self.candle_data.append(candle)
 
+            # CRITICAL: Update data_manager with new symbol's data!
+            # This is what ALL widgets read from!
+            import pandas as pd
+            df = pd.DataFrame(rates)
+            data_manager.candle_buffer.update(df, symbol, timeframe)
+            print(f"[Chart] Updated data_manager with {symbol} data - {len(rates)} candles")
+
             return True
 
         except Exception as e:
