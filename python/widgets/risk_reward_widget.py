@@ -353,12 +353,11 @@ class RiskRewardWidget(QWidget):
         self.structure_levels = structure_levels
 
     def set_symbol(self, symbol: str):
-        """Update current symbol and trigger recalculation"""
+        """Update current symbol and fetch live data from data_manager"""
         if symbol != self.current_symbol:
             self.current_symbol = symbol
-            # Trigger recalculation if we have structure levels
-            if hasattr(self, 'structure_levels'):
-                self.calculate_tps()
+            # CRITICAL: Get NEW structure levels from data_manager for the new symbol!
+            self.update_from_live_data()
 
     def calculate_tps(self):
         """Calculate and display optimized TPs"""
