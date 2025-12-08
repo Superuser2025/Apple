@@ -125,7 +125,13 @@ class ChartPanel(QWidget):
 
         # Chart canvas
         self.canvas = MplCanvas(self, width=10, height=6, dpi=100)
-        layout.addWidget(self.canvas)
+
+        # CRITICAL: Set size policy to prevent chart from shrinking when redrawn
+        from PyQt6.QtWidgets import QSizePolicy
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.canvas.setMinimumHeight(400)  # Minimum height to prevent squashing
+
+        layout.addWidget(self.canvas, stretch=1)  # Add stretch factor
 
         # Initialize chart
         self.init_chart()
@@ -685,6 +691,9 @@ class ChartPanel(QWidget):
             pass  # Ignore layout warnings
 
         self.canvas.draw()
+
+        # CRITICAL: Force canvas to update its geometry to prevent shrinking
+        self.canvas.updateGeometry()
 
     def calculate_support_resistance(self):
         """Calculate support and resistance levels from swing highs/lows"""
