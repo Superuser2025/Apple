@@ -1797,6 +1797,7 @@ class ChartPanel(QWidget):
         self.is_loading = True
 
         self.current_symbol = symbol
+        print(f"[Chart] Symbol changed to: {symbol}")
 
         # Emit signal to notify main window
         self.symbol_changed.emit(symbol)
@@ -1804,14 +1805,30 @@ class ChartPanel(QWidget):
         # Reload historical data for new symbol
         if self.mt5_initialized:
             success = self.load_historical_data(symbol=symbol)
-            if not success:
+            if success:
+                print(f"[Chart] ✓ Loaded {len(self.candle_data)} candles for {symbol} from MT5")
+            else:
+                print(f"[Chart] ✗ Failed to load {symbol} from MT5, trying fallback...")
                 # Fallback to live data if historical load fails
                 self.candle_data = []
                 self.get_live_mt5_data()
+
+                # CRITICAL: Even in fallback, update data_manager with current symbol!
+                # This ensures widgets know we're on a different symbol even with no data
+                import pandas as pd
+                data_manager.candle_buffer.symbol = symbol
+                data_manager.candle_buffer.timeframe = self.current_timeframe
+                print(f"[Chart] Updated data_manager to {symbol} (fallback mode)")
         else:
+            print(f"[Chart] MT5 not initialized, using live data for {symbol}")
             # MT5 not available, use live data
             self.candle_data = []
             self.get_live_mt5_data()
+
+            # CRITICAL: Update data_manager symbol even without MT5
+            data_manager.candle_buffer.symbol = symbol
+            data_manager.candle_buffer.timeframe = self.current_timeframe
+            print(f"[Chart] Updated data_manager to {symbol} (no MT5 mode)")
 
         self.plot_candlesticks()
 
