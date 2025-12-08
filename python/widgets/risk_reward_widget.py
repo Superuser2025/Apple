@@ -252,9 +252,10 @@ class RiskRewardWidget(QWidget):
         # For now, use high/low of recent candles as proxy for structure
         if len(df) >= 50:
             recent = df.tail(50)
+            # Format as dict with 'price' and 'strength' keys (required by optimizer)
             self.structure_levels = {
-                'resistance': [recent['high'].max()],
-                'support': [recent['low'].min()]
+                'resistance': [{'price': float(recent['high'].max()), 'strength': 1.0}],
+                'support': [{'price': float(recent['low'].min()), 'strength': 1.0}]
             }
 
         symbol = self.current_symbol
