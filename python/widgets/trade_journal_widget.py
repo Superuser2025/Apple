@@ -29,6 +29,10 @@ class TradeJournalWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # CRITICAL: Initialize current_symbol BEFORE calling update_from_live_data
+        self.current_symbol = "EURUSD"
+
         self.init_ui()
 
         # Auto-refresh every 5 seconds

@@ -92,6 +92,10 @@ class EquityCurveWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # CRITICAL: Initialize current_symbol BEFORE starting timer
+        self.current_symbol = "EURUSD"
+
         self.init_ui()
 
         # Auto-refresh every 2 seconds
