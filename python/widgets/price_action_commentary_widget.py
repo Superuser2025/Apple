@@ -91,7 +91,7 @@ class PriceActionCommentaryWidget(QWidget):
         layout.addWidget(narrative_group)
 
         # === PRICE PREDICTION ===
-        prediction_group = QGroupBox("🔮 Price Prediction & Bias")
+        self.prediction_group = QGroupBox("🔮 Price Prediction & Bias")
         prediction_layout = QVBoxLayout()
 
         self.prediction_text = QTextEdit()
@@ -109,11 +109,11 @@ class PriceActionCommentaryWidget(QWidget):
         """)
         prediction_layout.addWidget(self.prediction_text)
 
-        prediction_group.setLayout(prediction_layout)
-        layout.addWidget(prediction_group)
+        self.prediction_group.setLayout(prediction_layout)
+        layout.addWidget(self.prediction_group)
 
         # === REAL-TIME COMMENTARY FEED ===
-        feed_group = QGroupBox("📝 Live Commentary Feed (Auto-Updating)")
+        self.feed_group = QGroupBox("📝 Live Commentary Feed (Auto-Updating)")
         feed_layout = QVBoxLayout()
 
         self.commentary_feed = QTextEdit()
@@ -130,8 +130,8 @@ class PriceActionCommentaryWidget(QWidget):
         """)
         feed_layout.addWidget(self.commentary_feed)
 
-        feed_group.setLayout(feed_layout)
-        layout.addWidget(feed_group)
+        self.feed_group.setLayout(feed_layout)
+        layout.addWidget(self.feed_group)
 
         # === KEY LEVELS TO WATCH ===
         levels_group = QGroupBox("🎯 Key Levels to Watch")
@@ -183,6 +183,10 @@ class PriceActionCommentaryWidget(QWidget):
     def update_commentary(self):
         """Update price action commentary with latest analysis"""
         try:
+            # Update group titles with current symbol
+            self.prediction_group.setTitle(f"🔮 Price Prediction & Bias [{self.current_symbol}]")
+            self.feed_group.setTitle(f"📝 Live Commentary Feed ({self.current_symbol})")
+
             # Get current market data
             market_data = self.get_market_data()
 
@@ -315,6 +319,7 @@ class PriceActionCommentaryWidget(QWidget):
 
     def generate_prediction(self, data: Dict) -> str:
         """Generate price prediction and bias"""
+        symbol = data.get('symbol', self.current_symbol)
         trend = data['trend']
         price = data['price']
         sma_20 = data['sma_20']
@@ -322,19 +327,19 @@ class PriceActionCommentaryWidget(QWidget):
         html = "<p style='font-size: 11pt; line-height: 1.5;'>"
 
         if trend == "BULLISH":
-            html += "<b style='color: #10B981;'>▲ BULLISH BIAS</b><br>"
+            html += f"<b style='color: #10B981;'>▲ {symbol} BULLISH BIAS</b><br>"
             html += f"Expected move: Continuation to <b>{price + 0.0020:.5f}</b> zone<br>"
-            html += "Watch for: Pullbacks to support for entry<br>"
+            html += f"{symbol}: Watch for pullbacks to support for entry<br>"
             html += "Invalidation: Break below major support"
         elif trend == "BEARISH":
-            html += "<b style='color: #EF4444;'>▼ BEARISH BIAS</b><br>"
+            html += f"<b style='color: #EF4444;'>▼ {symbol} BEARISH BIAS</b><br>"
             html += f"Expected move: Continuation to <b>{price - 0.0020:.5f}</b> zone<br>"
-            html += "Watch for: Rallies into resistance for entries<br>"
+            html += f"{symbol}: Watch for rallies into resistance for entries<br>"
             html += "Invalidation: Break above major resistance"
         else:
-            html += "<b style='color: #F59E0B;'>◆ NEUTRAL - RANGE BOUND</b><br>"
+            html += f"<b style='color: #F59E0B;'>◆ {symbol} NEUTRAL - RANGE BOUND</b><br>"
             html += "Expected move: Continued consolidation<br>"
-            html += "Watch for: Breakout above/below range<br>"
+            html += f"{symbol}: Watch for breakout above/below range<br>"
             html += "Trade: Range boundaries until breakout confirmed"
 
         html += "</p>"
@@ -342,17 +347,18 @@ class PriceActionCommentaryWidget(QWidget):
 
     def generate_feed_entry(self, data: Dict, timestamp: str) -> str:
         """Generate single commentary feed entry"""
+        symbol = data.get('symbol', self.current_symbol)
         price = data['price']
         trend = data['trend']
 
-        # Random commentary based on market state
+        # Random commentary based on market state - ALL WITH SYMBOL NAME
         templates = [
-            f"[{timestamp}] Price testing {price:.5f} - {trend} structure holding",
-            f"[{timestamp}] Institutional order flow detected at {price:.5f}",
-            f"[{timestamp}] {trend} momentum building - watching for continuation",
-            f"[{timestamp}] Smart money accumulation visible at current levels",
-            f"[{timestamp}] Key support/resistance interaction at {price:.5f}",
-            f"[{timestamp}] Price respecting major technical levels - {trend} bias confirmed"
+            f"[{timestamp}] {symbol}: Price testing {price:.5f} - {trend} structure holding",
+            f"[{timestamp}] {symbol}: Institutional order flow detected at {price:.5f}",
+            f"[{timestamp}] {symbol}: {trend} momentum building - watching for continuation",
+            f"[{timestamp}] {symbol}: Smart money accumulation visible at current levels",
+            f"[{timestamp}] {symbol}: Key support/resistance interaction at {price:.5f}",
+            f"[{timestamp}] {symbol}: Price respecting major technical levels - {trend} bias confirmed"
         ]
 
         return random.choice(templates)
