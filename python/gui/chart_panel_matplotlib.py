@@ -618,13 +618,6 @@ class ChartPanel(QWidget):
         closes = [c['close'] for c in display_candles]
         timestamps = [c.get('timestamp', 0) for c in display_candles]
 
-        # CRITICAL: Disable autoscaling before setting fixed limits
-        self.canvas.axes.autoscale(False)
-
-        # CRITICAL: Set fixed X-axis limits to prevent squashing
-        # Always show space for 100 candles, even if we have fewer
-        self.canvas.axes.set_xlim(-2, 102)
-
         # Plot candlesticks with STANDARDIZED width
         for i, (idx, o, h, l, c) in enumerate(zip(indices, opens, highs, lows, closes)):
             color = '#10B981' if c >= o else '#EF4444'  # Green if bullish, red if bearish
@@ -638,6 +631,14 @@ class ChartPanel(QWidget):
             rect = Rectangle((idx - 0.3, body_bottom), 0.6, body_height,
                            facecolor=color, edgecolor=color)
             self.canvas.axes.add_patch(rect)
+
+        # CRITICAL: Set fixed X-axis limits AFTER plotting to prevent squashing
+        # Always show space for 100 candles, even if we have fewer
+        self.canvas.axes.set_xlim(-2, 102)
+
+        # CRITICAL: Let Y-axis autoscale to price data, but lock X-axis
+        self.canvas.axes.autoscale(enable=True, axis='y')
+        self.canvas.axes.autoscale(enable=False, axis='x')
 
         # Styling
         self.canvas.axes.set_facecolor('#0A0E27')
