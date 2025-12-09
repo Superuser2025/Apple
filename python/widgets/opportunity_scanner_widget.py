@@ -226,8 +226,18 @@ class TimeframeGroup(QWidget):
 
     def show_mini_chart(self, opportunity: Dict):
         """Show mini chart popup for the clicked opportunity"""
-        popup = MiniChartPopup(opportunity, parent=self)
-        popup.show()
+        # Get the sender (the card that was clicked)
+        sender = self.sender()
+        if sender:
+            # Position popup next to the clicked card
+            card_global_pos = sender.mapToGlobal(sender.rect().topRight())
+            popup = MiniChartPopup(opportunity, parent=self)
+            popup.move(card_global_pos.x() + 10, card_global_pos.y())  # 10px offset to the right
+            popup.show()
+        else:
+            # Fallback if sender not found
+            popup = MiniChartPopup(opportunity, parent=self)
+            popup.show()
 
 
 class OpportunityScannerWidget(QWidget):
@@ -607,40 +617,61 @@ class MiniChartPopup(QDialog):
 
         container_layout.addLayout(header_layout)
 
-        # Chart placeholder (for now, show opportunity details)
-        # TODO: Integrate actual matplotlib chart here
-        chart_area = QFrame()
-        chart_area.setStyleSheet("""
-            QFrame {
-                background-color: #1E293B;
-                border: 1px solid #334155;
-                border-radius: 5px;
-            }
-        """)
+        # ACTUAL MATPLOTLIB MINI CHART
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+        from matplotlib.figure import Figure
+        from core.data_manager import data_manager
 
-        chart_layout = QVBoxLayout(chart_area)
-        chart_layout.setContentsMargins(20, 20, 20, 20)
+        # Create matplotlib figure for mini chart
+        fig = Figure(figsize=(5, 3), dpi=100, facecolor='#1E293B')
+        canvas = FigureCanvasQTAgg(fig)
+        ax = fig.add_subplot(111)
+        ax.set_facecolor('#1E293B')
 
-        # Show trading details
-        details_html = f"""
-        <div style='color: #F8FAFC; font-family: Arial; font-size: 13px;'>
-            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Entry:</b> <span style='color: #3B82F6;'>{self.opportunity['entry']:.5f}</span></p>
-            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Stop Loss:</b> <span style='color: #EF4444;'>{self.opportunity['stop_loss']:.5f}</span></p>
-            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Take Profit:</b> <span style='color: #10B981;'>{self.opportunity['take_profit']:.5f}</span></p>
-            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Risk/Reward:</b> <span style='color: #F59E0B;'>{self.opportunity['risk_reward']:.1f}</span></p>
-            <p style='margin: 5px 0;'><b style='color: #94A3B8;'>Quality Score:</b> <span style='color: #10B981;'>⭐ {self.opportunity['quality_score']}</span></p>
-            <p style='margin: 10px 0 5px 0;'><b style='color: #94A3B8;'>Confluence:</b></p>
-            <p style='margin: 5px 0; color: #D1D5DB;'>✓ {" • ".join(self.opportunity.get('confluence_reasons', []))}</p>
-        </div>
-        """
+        # Get candle data from data_manager for this symbol
+        # Note: data_manager should already have this symbol's data loaded
+        candles = data_manager.get_candles(count=50)
 
-        details_label = QLabel(details_html)
-        details_label.setStyleSheet("background: transparent; border: none;")
-        chart_layout.addWidget(details_label)
+        if candles and len(candles) > 0:
+            # Plot candlesticks
+            for i, candle in enumerate(candles[-30:]):  # Show last 30 candles
+                o, h, l, c = candle['open'], candle['high'], candle['low'], candle['close']
+                color = '#10B981' if c >= o else '#EF4444'
 
-        chart_layout.addStretch()
+                # Draw wick
+                ax.plot([i, i], [l, h], color=color, linewidth=0.8)
 
-        container_layout.addWidget(chart_area)
+                # Draw body
+                body_height = abs(c - o)
+                body_bottom = min(o, c)
+                from matplotlib.patches import Rectangle
+                rect = Rectangle((i - 0.3, body_bottom), 0.6, body_height,
+                               facecolor=color, edgecolor=color, linewidth=0)
+                ax.add_patch(rect)
+
+            # Draw entry, SL, TP lines
+            entry = self.opportunity['entry']
+            sl = self.opportunity['stop_loss']
+            tp = self.opportunity['take_profit']
+
+            ax.axhline(y=entry, color='#3B82F6', linestyle='--', linewidth=1.5, label='Entry')
+            ax.axhline(y=sl, color='#EF4444', linestyle='--', linewidth=1.5, label='SL')
+            ax.axhline(y=tp, color='#10B981', linestyle='--', linewidth=1.5, label='TP')
+
+            ax.legend(loc='upper left', fontsize=8, facecolor='#1E293B', edgecolor='#334155', labelcolor='#F8FAFC')
+        else:
+            # No data available - show message
+            ax.text(0.5, 0.5, 'No chart data available', ha='center', va='center',
+                   transform=ax.transAxes, color='#94A3B8', fontsize=12)
+
+        # Style the chart
+        ax.grid(True, alpha=0.2, color='#334155')
+        ax.tick_params(colors='#94A3B8', labelsize=8)
+        ax.set_xlabel('Candles', color='#94A3B8', fontsize=9)
+        ax.set_ylabel('Price', color='#94A3B8', fontsize=9)
+        fig.tight_layout()
+
+        container_layout.addWidget(canvas)
 
         # Footer hint
         hint_label = QLabel("💡 Click outside to close")

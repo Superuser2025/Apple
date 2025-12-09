@@ -71,6 +71,21 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes.set_facecolor('#0A0E27')
         super().__init__(self.fig)
 
+        # CRITICAL: Lock the figure size to prevent matplotlib from resizing it
+        self.original_width = width
+        self.original_height = height
+        self.original_dpi = dpi
+
+        # Set size policy to expand and take available space
+        from PyQt6.QtWidgets import QSizePolicy
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+
+    def resizeEvent(self, event):
+        """Handle resize events - keep figure size locked"""
+        super().resizeEvent(event)
+        # Force figure to maintain its aspect ratio and size
+        self.fig.set_size_inches(self.original_width, self.original_height, forward=False)
+
 
 class ChartPanel(QWidget):
     """
@@ -125,12 +140,7 @@ class ChartPanel(QWidget):
 
         # Chart canvas
         self.canvas = MplCanvas(self, width=10, height=6, dpi=100)
-
-        # CRITICAL: Set size policy to prevent chart from shrinking when redrawn
-        from PyQt6.QtWidgets import QSizePolicy
-        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.canvas.setMinimumHeight(400)  # Minimum height to prevent squashing
-
         layout.addWidget(self.canvas, stretch=1)  # Add stretch factor
 
         # Initialize chart
