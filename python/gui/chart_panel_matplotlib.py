@@ -713,7 +713,11 @@ class ChartPanel(QWidget):
 
         # DEBUG: Check final xlim after all drawing
         final_xlim = self.canvas.axes.get_xlim()
+        fig_width, fig_height = self.canvas.fig.get_size_inches()
+        canvas_width = self.canvas.width()
+        canvas_height = self.canvas.height()
         print(f"[Chart] {self.current_timeframe}: Final xlim = {final_xlim}, Expected = (-2, 102)")
+        print(f"[Chart] {self.current_timeframe}: Figure size = {fig_width}x{fig_height} inches, Canvas size = {canvas_width}x{canvas_height} pixels")
 
         self.canvas.draw()
         self.canvas.flush_events()
