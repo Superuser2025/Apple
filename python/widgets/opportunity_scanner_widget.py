@@ -229,11 +229,21 @@ class TimeframeGroup(QWidget):
         # Get the sender (the card that was clicked)
         sender = self.sender()
         if sender:
-            # Position popup next to the clicked card
-            card_global_pos = sender.mapToGlobal(sender.rect().topRight())
+            # CRITICAL: Position popup RIGHT next to the clicked card
+            # Get the card's global position (top-left corner)
+            card_global_pos = sender.mapToGlobal(sender.rect().topLeft())
+
+            # Create and position popup
             popup = MiniChartPopup(opportunity, parent=self)
-            popup.move(card_global_pos.x() + 10, card_global_pos.y())  # 10px offset to the right
+
+            # Position it to the right of the card with a small gap
+            popup_x = card_global_pos.x() + sender.width() + 15
+            popup_y = card_global_pos.y()
+
+            popup.move(popup_x, popup_y)
             popup.show()
+
+            print(f"[MiniChart] Card at ({card_global_pos.x()}, {card_global_pos.y()}), Popup at ({popup_x}, {popup_y})")
         else:
             # Fallback if sender not found
             popup = MiniChartPopup(opportunity, parent=self)
@@ -570,8 +580,8 @@ class MiniChartPopup(QDialog):
 
     def init_ui(self):
         """Initialize the mini chart popup UI"""
-        # Set fixed size for mini chart
-        self.setFixedSize(600, 400)
+        # Set fixed size for mini chart - BIGGER for better visibility
+        self.setFixedSize(900, 650)
 
         # Main layout
         layout = QVBoxLayout(self)
@@ -622,9 +632,10 @@ class MiniChartPopup(QDialog):
         from matplotlib.figure import Figure
         from core.data_manager import data_manager
 
-        # Create matplotlib figure for mini chart
-        fig = Figure(figsize=(5, 3), dpi=100, facecolor='#1E293B')
+        # Create matplotlib figure for mini chart - LARGER for clarity
+        fig = Figure(figsize=(8.5, 4.5), dpi=100, facecolor='#1E293B')
         canvas = FigureCanvasQTAgg(fig)
+        canvas.setMinimumHeight(450)  # Ensure canvas doesn't shrink
         ax = fig.add_subplot(111)
         ax.set_facecolor('#1E293B')
 
