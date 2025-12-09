@@ -629,9 +629,9 @@ class ChartPanel(QWidget):
             body_height = abs(c - o) if abs(c - o) > 0 else 0.00001  # Minimum height for doji
             body_bottom = min(o, c)
 
-            # CRITICAL: Use bar() with ABSOLUTE width=0.8 for all timeframes
-            self.canvas.axes.bar(idx, body_height, width=0.8, bottom=body_bottom,
-                                color=color, edgecolor=color, linewidth=0)
+            # CRITICAL: Use bar() with ABSOLUTE width=0.95 for all timeframes (wider bars, minimal gaps)
+            self.canvas.axes.bar(idx, body_height, width=0.95, bottom=body_bottom,
+                                color=color, edgecolor=color, linewidth=0, align='center')
 
         # CRITICAL: Set fixed X-axis limits AFTER plotting to prevent squashing
         # Always show space for 100 candles, even if we have fewer
@@ -641,9 +641,11 @@ class ChartPanel(QWidget):
         self.canvas.axes.autoscale(enable=True, axis='y')
         self.canvas.axes.autoscale(enable=False, axis='x')
 
-        # FORCE aspect ratio to auto and adjustable
-        self.canvas.axes.set_aspect('auto', adjustable='box')
-        self.canvas.axes.apply_aspect()
+        # FORCE lock the xlim one more time AFTER autoscale
+        self.canvas.axes.set_xlim(-2, 102)
+
+        # Disable automatic margin adjustment
+        self.canvas.axes.margins(0, 0.05)  # 0 margin on X, 5% on Y
 
         # Styling
         self.canvas.axes.set_facecolor('#0A0E27')
