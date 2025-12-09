@@ -238,8 +238,8 @@ class TimeframeGroup(QWidget):
         # Get the sender (the card that was clicked)
         sender = self.sender()
         if sender:
-            # Get card's position on screen
-            card_pos = sender.mapToGlobal(sender.rect().topLeft())
+            # CRITICAL: Get card's exact position on screen (top-left corner)
+            card_global_pos = sender.mapToGlobal(sender.rect().topLeft())
 
             # Create popup
             self.current_popup = MiniChartPopup(opportunity, parent=None)
@@ -251,27 +251,32 @@ class TimeframeGroup(QWidget):
 
             if column in [0, 1]:
                 # Leftmost 2 columns - show popup on RIGHT of card
-                popup_x = card_pos.x() + sender.width() + 10
+                popup_x = card_global_pos.x() + sender.width() + 5
             else:  # column in [2, 3]
                 # Rightmost 2 columns - show popup on LEFT of card
-                popup_x = card_pos.x() - popup_width - 10
+                popup_x = card_global_pos.x() - popup_width - 5
 
-            # Vertical position - align with card top
-            popup_y = card_pos.y()
+            # CRITICAL: Align popup TOP with card TOP - no offset
+            popup_y = card_global_pos.y()
 
             # Ensure popup doesn't go off screen vertically
             from PyQt6.QtWidgets import QApplication
             screen = QApplication.primaryScreen().geometry()
-            if popup_y + popup_height > screen.height():
-                popup_y = screen.height() - popup_height - 20
-            if popup_y < 0:
-                popup_y = 20
 
-            # Set position and show
+            # Check if popup goes off bottom of screen
+            if popup_y + popup_height > screen.height():
+                # Move up to fit on screen
+                popup_y = screen.height() - popup_height - 10
+
+            # Check if popup goes off top of screen
+            if popup_y < 10:
+                popup_y = 10
+
+            # CRITICAL: Set position THEN show (not the other way around)
             self.current_popup.move(popup_x, popup_y)
             self.current_popup.show()
 
-            print(f"[MiniChart] Card column:{column}, Popup {'RIGHT' if column in [0,1] else 'LEFT'} at ({popup_x}, {popup_y})")
+            print(f"[MiniChart] Card at Y:{card_global_pos.y()}, Column:{column}, Popup {'RIGHT' if column in [0,1] else 'LEFT'} at X:{popup_x} Y:{popup_y}")
         else:
             # Fallback if sender not found
             self.current_popup = MiniChartPopup(opportunity, parent=None)
