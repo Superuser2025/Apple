@@ -591,29 +591,40 @@ class ChartPanel(QWidget):
             pass
 
     def plot_candlesticks(self):
-        """Plot candlestick chart"""
+        """Plot candlestick chart - STANDARDIZED for all timeframes"""
+
+        # CRITICAL: ALWAYS show exactly 100 candles regardless of timeframe
+        # This keeps candle width consistent across M5, M15, H1, H4, etc.
+        if len(self.candle_data) > 100:
+            display_candles = self.candle_data[-100:]  # Last 100 candles only
+        else:
+            display_candles = self.candle_data
 
         self.canvas.axes.clear()
 
-        if not self.candle_data:
+        if not display_candles:
             return
 
         # Extract data (use indices for plotting positions)
-        indices = list(range(len(self.candle_data)))
-        opens = [c['open'] for c in self.candle_data]
-        highs = [c['high'] for c in self.candle_data]
-        lows = [c['low'] for c in self.candle_data]
-        closes = [c['close'] for c in self.candle_data]
-        timestamps = [c.get('timestamp', 0) for c in self.candle_data]
+        indices = list(range(len(display_candles)))
+        opens = [c['open'] for c in display_candles]
+        highs = [c['high'] for c in display_candles]
+        lows = [c['low'] for c in display_candles]
+        closes = [c['close'] for c in display_candles]
+        timestamps = [c.get('timestamp', 0) for c in display_candles]
 
-        # Plot candlesticks
+        # CRITICAL: Set fixed X-axis limits to prevent squashing
+        # Always show space for 100 candles, even if we have fewer
+        self.canvas.axes.set_xlim(-2, 102)
+
+        # Plot candlesticks with STANDARDIZED width
         for i, (idx, o, h, l, c) in enumerate(zip(indices, opens, highs, lows, closes)):
             color = '#10B981' if c >= o else '#EF4444'  # Green if bullish, red if bearish
 
             # Draw wick
             self.canvas.axes.plot([idx, idx], [l, h], color=color, linewidth=1)
 
-            # Draw body
+            # Draw body - FIXED WIDTH of 0.6 for all timeframes
             body_height = abs(c - o)
             body_bottom = min(o, c)
             rect = Rectangle((idx - 0.3, body_bottom), 0.6, body_height,
@@ -664,6 +675,7 @@ class ChartPanel(QWidget):
             )
 
         # Draw institutional overlays (FVG, OB, Liquidity)
+        # Pass display_candles instead of self.candle_data
         self.draw_chart_overlays()
 
         # Draw candlestick patterns with timeframes
