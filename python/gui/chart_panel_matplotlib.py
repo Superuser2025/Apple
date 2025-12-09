@@ -690,27 +690,28 @@ class ChartPanel(QWidget):
                 pad=10
             )
 
+        # TEMPORARILY DISABLED ALL OVERLAYS TO TEST IF THEY'RE AFFECTING CANDLE WIDTH
         # Draw institutional overlays (FVG, OB, Liquidity)
         # Pass display_candles instead of self.candle_data
-        self.draw_chart_overlays()
+        # self.draw_chart_overlays()
 
         # Draw candlestick patterns with timeframes
-        self.draw_candlestick_patterns()
+        # self.draw_candlestick_patterns()
 
         # Draw active patterns panel overlay (MT5 EA style)
-        self.draw_active_patterns_panel()
+        # self.draw_active_patterns_panel()
 
         # Draw price action commentary boxes (MT5 EA style)
-        self.draw_price_action_commentary()
+        # self.draw_price_action_commentary()
 
         # Draw system status messages (MT5 EA style)
-        self.draw_system_status_messages()
+        # self.draw_system_status_messages()
 
         # Draw key chart levels (support/resistance, pivots, PDH/PDL/PDC, sessions)
-        self.draw_support_resistance_levels()
-        self.draw_pivot_points()
-        self.draw_previous_day_levels()
-        self.draw_session_markers()
+        # self.draw_support_resistance_levels()
+        # self.draw_pivot_points()
+        # self.draw_previous_day_levels()
+        # self.draw_session_markers()
 
         # Adjust layout with proper margins
         try:
