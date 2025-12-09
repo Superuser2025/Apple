@@ -71,21 +71,6 @@ class MplCanvas(FigureCanvasQTAgg):
         self.axes.set_facecolor('#0A0E27')
         super().__init__(self.fig)
 
-        # CRITICAL: Lock the figure size to prevent matplotlib from resizing it
-        self.original_width = width
-        self.original_height = height
-        self.original_dpi = dpi
-
-        # Set size policy to expand and take available space
-        from PyQt6.QtWidgets import QSizePolicy
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
-    def resizeEvent(self, event):
-        """Handle resize events - keep figure size locked"""
-        super().resizeEvent(event)
-        # Force figure to maintain its aspect ratio and size
-        self.fig.set_size_inches(self.original_width, self.original_height, forward=False)
-
 
 class ChartPanel(QWidget):
     """
@@ -140,8 +125,7 @@ class ChartPanel(QWidget):
 
         # Chart canvas
         self.canvas = MplCanvas(self, width=10, height=6, dpi=100)
-        self.canvas.setMinimumHeight(400)  # Minimum height to prevent squashing
-        layout.addWidget(self.canvas, stretch=1)  # Add stretch factor
+        layout.addWidget(self.canvas)
 
         # Initialize chart
         self.init_chart()
@@ -701,9 +685,6 @@ class ChartPanel(QWidget):
             pass  # Ignore layout warnings
 
         self.canvas.draw()
-
-        # CRITICAL: Force canvas to update its geometry to prevent shrinking
-        self.canvas.updateGeometry()
 
     def calculate_support_resistance(self):
         """Calculate support and resistance levels from swing highs/lows"""

@@ -226,28 +226,33 @@ class TimeframeGroup(QWidget):
 
     def show_mini_chart(self, opportunity: Dict):
         """Show mini chart popup for the clicked opportunity"""
+        # Close any existing popup first to prevent multiple popups
+        if self.current_popup and self.current_popup.isVisible():
+            self.current_popup.close()
+
         # Get the sender (the card that was clicked)
         sender = self.sender()
         if sender:
             # CRITICAL: Position popup RIGHT next to the clicked card
-            # Get the card's global position (top-left corner)
-            card_global_pos = sender.mapToGlobal(sender.rect().topLeft())
+            # Get the card's position relative to screen
+            card_pos = sender.mapToGlobal(sender.rect().topLeft())
 
-            # Create and position popup
-            popup = MiniChartPopup(opportunity, parent=self)
+            # Create popup and set position BEFORE showing
+            self.current_popup = MiniChartPopup(opportunity, parent=None)  # No parent to avoid repositioning
 
-            # Position it to the right of the card with a small gap
-            popup_x = card_global_pos.x() + sender.width() + 15
-            popup_y = card_global_pos.y()
+            # Position it to the right of the card
+            popup_x = card_pos.x() + sender.width() + 10
+            popup_y = card_pos.y()
 
-            popup.move(popup_x, popup_y)
-            popup.show()
+            # Set position and show
+            self.current_popup.move(popup_x, popup_y)
+            self.current_popup.show()
 
-            print(f"[MiniChart] Card at ({card_global_pos.x()}, {card_global_pos.y()}), Popup at ({popup_x}, {popup_y})")
+            print(f"[MiniChart] Card at ({card_pos.x()}, {card_pos.y()}), Popup at ({popup_x}, {popup_y})")
         else:
             # Fallback if sender not found
-            popup = MiniChartPopup(opportunity, parent=self)
-            popup.show()
+            self.current_popup = MiniChartPopup(opportunity, parent=None)
+            self.current_popup.show()
 
 
 class OpportunityScannerWidget(QWidget):
@@ -693,19 +698,4 @@ class MiniChartPopup(QDialog):
 
         layout.addWidget(container)
 
-    def showEvent(self, event):
-        """Position the popup near the mouse cursor"""
-        super().showEvent(event)
-
-        # Center on parent if available, otherwise center on screen
-        if self.parent():
-            parent_rect = self.parent().geometry()
-            x = parent_rect.x() + (parent_rect.width() - self.width()) // 2
-            y = parent_rect.y() + (parent_rect.height() - self.height()) // 2
-            self.move(x, y)
-        else:
-            from PyQt6.QtWidgets import QApplication
-            screen = QApplication.primaryScreen().geometry()
-            x = (screen.width() - self.width()) // 2
-            y = (screen.height() - self.height()) // 2
-            self.move(x, y)
+    # REMOVED showEvent - it was repositioning the popup after we set its position!
