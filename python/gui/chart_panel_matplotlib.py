@@ -103,6 +103,10 @@ class ChartPanel(QWidget):
         # Loading flag to prevent updates during data reload
         self.is_loading = False
 
+        # Overlay visibility flags (user can toggle these)
+        self.show_overlays = True  # FVG, OB, Liquidity zones
+        self.show_levels = True    # S/R, Pivots, PDH/PDL/PDC
+
         # MT5 connection status
         self.mt5_initialized = False
         self.init_mt5_connection()
@@ -432,7 +436,56 @@ class ChartPanel(QWidget):
         """)
         layout.addWidget(self.time_label)
 
-        # Spacing between time and connection
+        # Spacing between time and overlays
+        layout.addSpacing(30)
+
+        # Overlay toggle button
+        self.overlay_toggle_btn = QPushButton("📊 Overlays: ON")
+        self.overlay_toggle_btn.clicked.connect(self.toggle_overlays)
+        self.overlay_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #10B981;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: {settings.theme.font_size_sm}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #059669;
+            }}
+            QPushButton:pressed {{
+                background-color: #047857;
+            }}
+        """)
+        layout.addWidget(self.overlay_toggle_btn)
+
+        layout.addSpacing(10)
+
+        # Levels toggle button
+        self.levels_toggle_btn = QPushButton("📈 Levels: ON")
+        self.levels_toggle_btn.clicked.connect(self.toggle_levels)
+        self.levels_toggle_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #10B981;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 16px;
+                font-size: {settings.theme.font_size_sm}px;
+                font-weight: bold;
+            }}
+            QPushButton:hover {{
+                background-color: #059669;
+            }}
+            QPushButton:pressed {{
+                background-color: #047857;
+            }}
+        """)
+        layout.addWidget(self.levels_toggle_btn)
+
+        # Spacing between levels and connection
         layout.addSpacing(20)
 
         # MT5 Connection status (moved from top toolbar)
@@ -690,27 +743,29 @@ class ChartPanel(QWidget):
                 pad=10
             )
 
-        # OVERLAYS RE-ENABLED - Candles are now properly standardized
-        # Draw institutional overlays (FVG, OB, Liquidity)
-        self.draw_chart_overlays()
+        # Draw overlays based on user toggle settings
+        if self.show_overlays:
+            # Draw institutional overlays (FVG, OB, Liquidity)
+            self.draw_chart_overlays()
 
-        # Draw candlestick patterns with timeframes
-        self.draw_candlestick_patterns()
+            # Draw candlestick patterns with timeframes
+            self.draw_candlestick_patterns()
 
-        # Draw active patterns panel overlay (MT5 EA style)
-        self.draw_active_patterns_panel()
+            # Draw active patterns panel overlay (MT5 EA style)
+            self.draw_active_patterns_panel()
 
-        # Draw price action commentary boxes (MT5 EA style)
-        self.draw_price_action_commentary()
+            # Draw price action commentary boxes (MT5 EA style)
+            self.draw_price_action_commentary()
 
-        # Draw system status messages (MT5 EA style)
-        self.draw_system_status_messages()
+            # Draw system status messages (MT5 EA style)
+            self.draw_system_status_messages()
 
-        # Draw key chart levels (support/resistance, pivots, PDH/PDL/PDC, sessions)
-        self.draw_support_resistance_levels()
-        self.draw_pivot_points()
-        self.draw_previous_day_levels()
-        self.draw_session_markers()
+        if self.show_levels:
+            # Draw key chart levels (support/resistance, pivots, PDH/PDL/PDC, sessions)
+            self.draw_support_resistance_levels()
+            self.draw_pivot_points()
+            self.draw_previous_day_levels()
+            self.draw_session_markers()
 
         # Adjust layout with proper margins
         try:
@@ -1953,3 +2008,95 @@ class ChartPanel(QWidget):
 
         # Emit signal to main window
         self.display_mode_changed.emit(self.is_max_mode)
+
+    def toggle_overlays(self):
+        """Toggle FVG/OB/Liquidity overlays on/off"""
+        self.show_overlays = not self.show_overlays
+
+        if self.show_overlays:
+            self.overlay_toggle_btn.setText("📊 Overlays: ON")
+            self.overlay_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #10B981;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_sm}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #059669;
+                }}
+                QPushButton:pressed {{
+                    background-color: #047857;
+                }}
+            """)
+        else:
+            self.overlay_toggle_btn.setText("📊 Overlays: OFF")
+            self.overlay_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #EF4444;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_sm}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+                QPushButton:pressed {{
+                    background-color: #B91C1C;
+                }}
+            """)
+
+        # Redraw chart
+        self.plot_candlesticks()
+
+    def toggle_levels(self):
+        """Toggle S/R, Pivots, PDH/PDL/PDC levels on/off"""
+        self.show_levels = not self.show_levels
+
+        if self.show_levels:
+            self.levels_toggle_btn.setText("📈 Levels: ON")
+            self.levels_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #10B981;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_sm}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #059669;
+                }}
+                QPushButton:pressed {{
+                    background-color: #047857;
+                }}
+            """)
+        else:
+            self.levels_toggle_btn.setText("📈 Levels: OFF")
+            self.levels_toggle_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background-color: #EF4444;
+                    color: #FFFFFF;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 16px;
+                    font-size: {settings.theme.font_size_sm}px;
+                    font-weight: bold;
+                }}
+                QPushButton:hover {{
+                    background-color: #DC2626;
+                }}
+                QPushButton:pressed {{
+                    background-color: #B91C1C;
+                }}
+            """)
+
+        # Redraw chart
+        self.plot_candlesticks()
