@@ -151,6 +151,7 @@ class TimeframeGroup(QWidget):
         super().__init__(parent)
         self.timeframes = timeframes
         self.opportunities = []
+        self.current_popup = None  # Store reference to current popup
         self.init_ui()
 
     def init_ui(self):
