@@ -618,19 +618,20 @@ class ChartPanel(QWidget):
         closes = [c['close'] for c in display_candles]
         timestamps = [c.get('timestamp', 0) for c in display_candles]
 
-        # Plot candlesticks with STANDARDIZED width
+        # Plot candlesticks with STANDARDIZED width using bar() for consistency
         for i, (idx, o, h, l, c) in enumerate(zip(indices, opens, highs, lows, closes)):
             color = '#10B981' if c >= o else '#EF4444'  # Green if bullish, red if bearish
 
             # Draw wick
-            self.canvas.axes.plot([idx, idx], [l, h], color=color, linewidth=1)
+            self.canvas.axes.plot([idx, idx], [l, h], color=color, linewidth=1, solid_capstyle='projecting')
 
-            # Draw body - FIXED WIDTH of 0.6 for all timeframes
-            body_height = abs(c - o)
+            # Draw body using bar() - MORE RELIABLE than Rectangle for consistent width
+            body_height = abs(c - o) if abs(c - o) > 0 else 0.00001  # Minimum height for doji
             body_bottom = min(o, c)
-            rect = Rectangle((idx - 0.3, body_bottom), 0.6, body_height,
-                           facecolor=color, edgecolor=color)
-            self.canvas.axes.add_patch(rect)
+
+            # CRITICAL: Use bar() with ABSOLUTE width=0.8 for all timeframes
+            self.canvas.axes.bar(idx, body_height, width=0.8, bottom=body_bottom,
+                                color=color, edgecolor=color, linewidth=0)
 
         # CRITICAL: Set fixed X-axis limits AFTER plotting to prevent squashing
         # Always show space for 100 candles, even if we have fewer
@@ -639,6 +640,10 @@ class ChartPanel(QWidget):
         # CRITICAL: Let Y-axis autoscale to price data, but lock X-axis
         self.canvas.axes.autoscale(enable=True, axis='y')
         self.canvas.axes.autoscale(enable=False, axis='x')
+
+        # FORCE aspect ratio to auto and adjustable
+        self.canvas.axes.set_aspect('auto', adjustable='box')
+        self.canvas.axes.apply_aspect()
 
         # Styling
         self.canvas.axes.set_facecolor('#0A0E27')
