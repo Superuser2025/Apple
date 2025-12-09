@@ -593,6 +593,10 @@ class ChartPanel(QWidget):
     def plot_candlesticks(self):
         """Plot candlestick chart"""
 
+        # CRITICAL: Reset figure size to defaults BEFORE drawing
+        # This prevents progressive squashing on symbol/timeframe changes
+        self.canvas.fig.set_size_inches(10, 6, forward=True)
+
         self.canvas.axes.clear()
 
         if not self.candle_data:
@@ -691,6 +695,9 @@ class ChartPanel(QWidget):
             pass  # Ignore layout warnings
 
         self.canvas.draw()
+
+        # CRITICAL: Force canvas to maintain size after drawing
+        self.canvas.updateGeometry()
 
     def calculate_support_resistance(self):
         """Calculate support and resistance levels from swing highs/lows"""
