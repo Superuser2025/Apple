@@ -125,7 +125,13 @@ class ChartPanel(QWidget):
 
         # Chart canvas
         self.canvas = MplCanvas(self, width=10, height=6, dpi=100)
-        layout.addWidget(self.canvas)
+
+        # CRITICAL: Set size policy to prevent squashing
+        from PyQt6.QtWidgets import QSizePolicy
+        self.canvas.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.canvas.setMinimumHeight(400)
+
+        layout.addWidget(self.canvas, stretch=1)
 
         # Initialize chart
         self.init_chart()
