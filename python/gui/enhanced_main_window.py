@@ -407,7 +407,8 @@ class EnhancedMainWindow(QMainWindow):
             self.institutional_panel.update_market_status("Trending market - High volume detected")
             self.institutional_panel.update_context("LONDON", "H4/H1", "BULLISH", "HH forming")
             self.institutional_panel.update_risk_metrics(2.0, 5.2, 68.0)
-            self.institutional_panel.update_performance(2.3, 8.7, 15.2)
+            # Performance section removed per user request
+            # self.institutional_panel.update_performance(2.3, 8.7, 15.2)
 
         # Update status bar
         self.status_bar.showMessage(f"Updated: {datetime.now().strftime('%H:%M:%S')}", 2000)

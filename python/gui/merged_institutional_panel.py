@@ -84,8 +84,7 @@ class MergedInstitutionalPanel(QWidget):
         # === RISK METRICS ===
         layout.addWidget(self.create_risk_metrics_section())
 
-        # === PERFORMANCE ===
-        layout.addWidget(self.create_performance_section())
+        # PERFORMANCE section removed per user request (redundant with chart display)
 
         layout.addStretch()
 
@@ -488,18 +487,19 @@ class MergedInstitutionalPanel(QWidget):
         group.setLayout(layout)
         return group
 
-    def create_performance_section(self) -> QGroupBox:
-        """Create performance section"""
-        group = QGroupBox("📊 PERFORMANCE")
-        layout = QVBoxLayout()
-
-        self.performance_label = QLabel("Today: +2.3%\nWeek: +8.7%\nMonth: +15.2%")
-        self.performance_label.setStyleSheet("color: #00ff00; padding: 5px; font-weight: bold; font-size: 14px;")
-        self.performance_label.setWordWrap(True)
-        layout.addWidget(self.performance_label)
-
-        group.setLayout(layout)
-        return group
+    # PERFORMANCE SECTION REMOVED - User confirmed it's redundant with chart display
+    # def create_performance_section(self) -> QGroupBox:
+    #     """Create performance section"""
+    #     group = QGroupBox("📊 PERFORMANCE")
+    #     layout = QVBoxLayout()
+    #
+    #     self.performance_label = QLabel("Today: +2.3%\nWeek: +8.7%\nMonth: +15.2%")
+    #     self.performance_label.setStyleSheet("color: #00ff00; padding: 5px; font-weight: bold; font-size: 14px;")
+    #     self.performance_label.setWordWrap(True)
+    #     layout.addWidget(self.performance_label)
+    #
+    #     group.setLayout(layout)
+    #     return group
 
     def on_mode_toggled(self):
         """Handle mode toggle"""
@@ -559,12 +559,13 @@ class MergedInstitutionalPanel(QWidget):
             f"Win Rate: {win_rate:.0f}%"
         )
 
-    def update_performance(self, today: float, week: float, month: float):
-        """Update performance stats"""
-        self.performance_label.setText(
-            f"Today: {today:+.1f}%\n"
-            f"Week: {week:+.1f}%\n"
-            f"Month: {month:+.1f}%"
-        )
-        color = "#00ff00" if today >= 0 else "#ff0000"
-        self.performance_label.setStyleSheet(f"color: {color}; padding: 5px; font-weight: bold; font-size: 14px;")
+    # PERFORMANCE SECTION REMOVED - No longer needed
+    # def update_performance(self, today: float, week: float, month: float):
+    #     """Update performance stats"""
+    #     self.performance_label.setText(
+    #         f"Today: {today:+.1f}%\n"
+    #         f"Week: {week:+.1f}%\n"
+    #         f"Month: {month:+.1f}%"
+    #     )
+    #     color = "#00ff00" if today >= 0 else "#ff0000"
+    #     self.performance_label.setStyleSheet(f"color: {color}; padding: 5px; font-weight: bold; font-size: 14px;")
