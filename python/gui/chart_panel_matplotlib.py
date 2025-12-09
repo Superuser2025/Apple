@@ -593,15 +593,6 @@ class ChartPanel(QWidget):
     def plot_candlesticks(self):
         """Plot candlestick chart"""
 
-        # CRITICAL: Let figure size adjust to canvas size dynamically
-        # Get canvas widget size and calculate appropriate figure size
-        canvas_width = self.canvas.width() / self.canvas.fig.dpi
-        canvas_height = self.canvas.height() / self.canvas.fig.dpi
-
-        # Only update if canvas has valid size
-        if canvas_width > 1 and canvas_height > 1:
-            self.canvas.fig.set_size_inches(canvas_width, canvas_height, forward=True)
-
         self.canvas.axes.clear()
 
         if not self.candle_data:
@@ -700,9 +691,7 @@ class ChartPanel(QWidget):
             pass  # Ignore layout warnings
 
         self.canvas.draw()
-
-        # CRITICAL: Force canvas to maintain size after drawing
-        self.canvas.updateGeometry()
+        self.canvas.flush_events()
 
     def calculate_support_resistance(self):
         """Calculate support and resistance levels from swing highs/lows"""
