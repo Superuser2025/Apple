@@ -415,10 +415,11 @@ class EnhancedMainWindow(QMainWindow):
     def on_mt5_connection_changed(self, connected: bool):
         """Handle MT5 connection status change"""
         # Connection status now shown in chart panel, not in top toolbar
-        if connected:
-            self.status_label.setText("MT5 connection established")
-        else:
-            self.status_label.setText("MT5 connection lost")
+        if hasattr(self, 'status_label'):
+            if connected:
+                self.status_label.setText("MT5 connection established")
+            else:
+                self.status_label.setText("MT5 connection lost")
 
     def on_mt5_data_updated(self, data: dict):
         """Handle new data from MT5"""
@@ -427,11 +428,13 @@ class EnhancedMainWindow(QMainWindow):
         if 'timeframe' in data:
             self.current_timeframe = data['timeframe']
 
-        self.status_label.setText(f"MT5 data received: {self.current_symbol} {self.current_timeframe}")
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"MT5 data received: {self.current_symbol} {self.current_timeframe}")
 
     def on_mt5_error(self, error_message: str):
         """Handle MT5 error"""
-        self.status_label.setText(f"MT5 Error: {error_message}")
+        if hasattr(self, 'status_label'):
+            self.status_label.setText(f"MT5 Error: {error_message}")
         print(f"[MT5 ERROR] {error_message}")
 
     def create_menu_bar(self):

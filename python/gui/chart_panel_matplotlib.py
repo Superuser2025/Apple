@@ -24,7 +24,9 @@ import logging
 
 # Suppress matplotlib font warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
+warnings.filterwarnings('ignore', message='.*Glyph.*missing from font.*')
 logging.getLogger('matplotlib').setLevel(logging.ERROR)
+logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
 from core.data_manager import data_manager
 
