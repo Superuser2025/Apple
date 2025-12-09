@@ -246,14 +246,18 @@ class TimeframeGroup(QWidget):
             popup_width = self.current_popup.width()  # 900px
             popup_height = self.current_popup.height()  # 650px
 
-            # SIMPLE RULE: Columns 0,1 → show on RIGHT | Columns 2,3 → show on LEFT
+            # UPDATED RULE:
+            # Column 0 (leftmost) → RIGHT
+            # Column 1 (third from right) → LEFT
+            # Column 2 (third from left) → RIGHT
+            # Column 3 (rightmost) → LEFT
             column = sender.column_index
 
-            if column in [0, 1]:
-                # Leftmost 2 columns - show popup on RIGHT of card
+            if column in [0, 2]:
+                # Columns 0 and 2 - show popup on RIGHT of card
                 popup_x = card_global_pos.x() + sender.width() + 5
-            else:  # column in [2, 3]
-                # Rightmost 2 columns - show popup on LEFT of card
+            else:  # column in [1, 3]
+                # Columns 1 and 3 - show popup on LEFT of card
                 popup_x = card_global_pos.x() - popup_width - 5
 
             # CRITICAL: Align popup TOP with card TOP - no offset
@@ -276,7 +280,7 @@ class TimeframeGroup(QWidget):
             self.current_popup.move(popup_x, popup_y)
             self.current_popup.show()
 
-            print(f"[MiniChart] Card at Y:{card_global_pos.y()}, Column:{column}, Popup {'RIGHT' if column in [0,1] else 'LEFT'} at X:{popup_x} Y:{popup_y}")
+            print(f"[MiniChart] Card at Y:{card_global_pos.y()}, Column:{column}, Popup {'RIGHT' if column in [0,2] else 'LEFT'} at X:{popup_x} Y:{popup_y}")
         else:
             # Fallback if sender not found
             self.current_popup = MiniChartPopup(opportunity, parent=None)
