@@ -30,6 +30,7 @@ class PriceActionCommentaryWidget(QWidget):
         super().__init__(parent)
 
         self.current_symbol = "EURUSD"
+        self.current_timeframe = "M15"  # Add timeframe tracking
         self.commentary_history = []
         self.last_price = None
         self.price_direction = "NEUTRAL"
@@ -183,9 +184,12 @@ class PriceActionCommentaryWidget(QWidget):
     def update_commentary(self):
         """Update price action commentary with latest analysis"""
         try:
-            # Update group titles with current symbol
-            self.prediction_group.setTitle(f"🔮 Price Prediction & Bias [{self.current_symbol}]")
-            self.feed_group.setTitle(f"📝 Live Commentary Feed ({self.current_symbol})")
+            # Get current timeframe from data_manager
+            self.current_timeframe = data_manager.candle_buffer.timeframe or "M15"
+
+            # Update group titles with current symbol AND TIMEFRAME
+            self.prediction_group.setTitle(f"🔮 Price Prediction & Bias [{self.current_symbol} - {self.current_timeframe}]")
+            self.feed_group.setTitle(f"📝 Live Commentary Feed ({self.current_symbol} - {self.current_timeframe})")
 
             # Get current market data
             market_data = self.get_market_data()
