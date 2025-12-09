@@ -662,9 +662,15 @@ class MiniChartPopup(QDialog):
         from core.data_manager import data_manager
 
         # Create matplotlib figure for mini chart - LARGER for clarity
-        fig = Figure(figsize=(8.5, 4.5), dpi=100, facecolor='#1E293B')
+        fig = Figure(figsize=(8.5, 5.0), dpi=100, facecolor='#1E293B')
         canvas = FigureCanvasQTAgg(fig)
-        canvas.setMinimumHeight(450)  # Ensure canvas doesn't shrink
+
+        # CRITICAL: Set size policy and fixed size to prevent squashing
+        from PyQt6.QtWidgets import QSizePolicy
+        canvas.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        canvas.setFixedHeight(500)  # Lock the height
+        canvas.setFixedWidth(850)   # Lock the width
+
         ax = fig.add_subplot(111)
         ax.set_facecolor('#1E293B')
 
