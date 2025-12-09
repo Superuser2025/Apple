@@ -583,16 +583,31 @@ class OpportunityScannerWidget(QWidget):
             return None
 
     def update_display(self):
-        """Update all three groups with filtered opportunities"""
+        """Update all three groups with filtered opportunities - APPLIES INSTITUTIONAL FILTERS"""
+        from core.filter_manager import filter_manager
+
+        # Apply institutional filters to all opportunities
+        filtered_opportunities = [
+            opp for opp in self.opportunities
+            if filter_manager.filter_opportunity(opp)
+        ]
+
         # Separate by timeframe
-        short_term = [opp for opp in self.opportunities if opp['timeframe'] in ['M1', 'M5', 'M15']]
-        medium_term = [opp for opp in self.opportunities if opp['timeframe'] in ['M30', 'H1', 'H2']]
-        long_term = [opp for opp in self.opportunities if opp['timeframe'] in ['H4', 'H8', 'D1']]
+        short_term = [opp for opp in filtered_opportunities if opp['timeframe'] in ['M1', 'M5', 'M15']]
+        medium_term = [opp for opp in filtered_opportunities if opp['timeframe'] in ['M30', 'H1', 'H2']]
+        long_term = [opp for opp in filtered_opportunities if opp['timeframe'] in ['H4', 'H8', 'D1']]
 
         # Update each group (max 12 per group = 3 rows x 4 columns)
         self.short_group.update_opportunities(short_term[:12])
         self.mid_group.update_opportunities(medium_term[:12])
         self.long_group.update_opportunities(long_term[:12])
+
+        print(f"[Scanner] Total opportunities: {len(self.opportunities)}, After filters: {len(filtered_opportunities)}")
+
+    def refresh_with_filters(self):
+        """Force refresh of display with current filter settings"""
+        print("[Scanner] Refreshing with new filter settings...")
+        self.update_display()
 
     def blink_status(self):
         """Blink status - labels removed, method now does nothing"""

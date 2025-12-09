@@ -322,12 +322,20 @@ class EnhancedMainWindow(QMainWindow):
             print("[DEBUG] SMALL MODE active - normal layout restored")
 
     def on_filter_toggled(self, filter_name: str, enabled: bool):
-        """Handle filter toggle from institutional panel"""
+        """Handle filter toggle from institutional panel - ACTUALLY APPLIES FILTERS"""
+        from core.filter_manager import filter_manager
+
+        # Update filter in filter manager
+        filter_manager.set_filter(filter_name, enabled)
+
+        # Update status
         self.status_label.setText(f"Filter {filter_name}: {'Enabled' if enabled else 'Disabled'}")
         print(f"[Main Window] Filter {filter_name} {'enabled' if enabled else 'disabled'}")
 
-        # Apply filter logic here
-        # For now, just log it
+        # Trigger opportunity scanner refresh with new filters
+        if hasattr(self, 'opportunity_scanner'):
+            self.opportunity_scanner.refresh_with_filters()
+            print(f"[Main Window] Scanner refreshed with active filters: {filter_manager.get_active_filters()}")
 
     def on_mode_changed(self, mode: str):
         """Handle mode change (AUTO/MANUAL)"""
