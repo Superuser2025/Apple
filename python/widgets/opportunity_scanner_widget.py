@@ -21,6 +21,7 @@ class OpportunityCard(QFrame):
     def __init__(self, opportunity: Dict, parent=None):
         super().__init__(parent)
         self.opportunity = opportunity
+        self.column_index = 0  # Will be set when added to grid
         self.setObjectName("OpportunityCard")
         self.setMouseTracking(True)  # Enable mouse tracking for hover effects
         self.setCursor(Qt.CursorShape.PointingHandCursor)  # Show hand cursor on hover
@@ -205,11 +206,14 @@ class TimeframeGroup(QWidget):
             card = OpportunityCard(opp)
             card.setCursor(Qt.CursorShape.PointingHandCursor)
 
-            # Connect card click to show mini chart popup
-            card.clicked.connect(self.show_mini_chart)
-
             row = idx // 4  # 4 cards per row
             col = idx % 4   # Columns 0, 1, 2, 3
+
+            # CRITICAL: Store column index in card for popup positioning
+            card.column_index = col
+
+            # Connect card click to show mini chart popup
+            card.clicked.connect(self.show_mini_chart)
 
             self.grid_layout.addWidget(card, row, col)
 
@@ -237,32 +241,27 @@ class TimeframeGroup(QWidget):
             # Get card's position on screen
             card_pos = sender.mapToGlobal(sender.rect().topLeft())
 
-            # Get screen dimensions
-            from PyQt6.QtWidgets import QApplication
-            screen = QApplication.primaryScreen().geometry()
-
             # Create popup
             self.current_popup = MiniChartPopup(opportunity, parent=None)
             popup_width = self.current_popup.width()  # 900px
             popup_height = self.current_popup.height()  # 650px
 
-            # Calculate space available on the right and left of the card
-            space_on_right = screen.width() - (card_pos.x() + sender.width())
-            space_on_left = card_pos.x()
+            # SIMPLE RULE: Columns 0,1 → show on RIGHT | Columns 2,3 → show on LEFT
+            column = sender.column_index
 
-            # Decide whether to show on right or left
-            if space_on_right >= popup_width + 20:
-                # Enough space on right - show to the right of card
+            if column in [0, 1]:
+                # Leftmost 2 columns - show popup on RIGHT of card
                 popup_x = card_pos.x() + sender.width() + 10
-            elif space_on_left >= popup_width + 20:
-                # Not enough space on right but enough on left - show to the left
+            else:  # column in [2, 3]
+                # Rightmost 2 columns - show popup on LEFT of card
                 popup_x = card_pos.x() - popup_width - 10
-            else:
-                # Not enough space on either side - center it
-                popup_x = (screen.width() - popup_width) // 2
 
-            # Vertical position - align with card, but ensure it doesn't go off screen
+            # Vertical position - align with card top
             popup_y = card_pos.y()
+
+            # Ensure popup doesn't go off screen vertically
+            from PyQt6.QtWidgets import QApplication
+            screen = QApplication.primaryScreen().geometry()
             if popup_y + popup_height > screen.height():
                 popup_y = screen.height() - popup_height - 20
             if popup_y < 0:
@@ -272,7 +271,7 @@ class TimeframeGroup(QWidget):
             self.current_popup.move(popup_x, popup_y)
             self.current_popup.show()
 
-            print(f"[MiniChart] Card at ({card_pos.x()}, {card_pos.y()}), Screen: {screen.width()}x{screen.height()}, Space R:{space_on_right} L:{space_on_left}, Popup at ({popup_x}, {popup_y})")
+            print(f"[MiniChart] Card column:{column}, Popup {'RIGHT' if column in [0,1] else 'LEFT'} at ({popup_x}, {popup_y})")
         else:
             # Fallback if sender not found
             self.current_popup = MiniChartPopup(opportunity, parent=None)
