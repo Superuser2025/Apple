@@ -780,6 +780,9 @@ class ChartPanel(QWidget):
             return
 
         try:
+            # Get timeframe-appropriate settings
+            settings = self.get_overlay_settings()
+
             levels = self.calculate_support_resistance()
 
             for level in levels:
@@ -789,23 +792,23 @@ class ChartPanel(QWidget):
                 # Color: Blue for support, Purple for resistance
                 color = '#3B82F6' if level_type == 'support' else '#A855F7'
 
-                # Draw horizontal line
+                # Draw horizontal line with timeframe-based alpha and linewidth
                 self.canvas.axes.axhline(
                     y=price,
                     color=color,
                     linestyle='--',
-                    linewidth=1.5,
-                    alpha=0.6,
+                    linewidth=settings['linewidth'],
+                    alpha=settings['line_alpha'],
                     zorder=50
                 )
 
-                # Add label
+                # Add label with timeframe-based font size
                 label_text = f'{"S" if level_type == "support" else "R"}: {price:.5f}'
                 self.canvas.axes.text(
                     len(self.candle_data) - 15,
                     price,
                     label_text,
-                    fontsize=8,
+                    fontsize=settings['font_size'],
                     color=color,
                     weight='bold',
                     ha='left',
@@ -858,6 +861,9 @@ class ChartPanel(QWidget):
             return
 
         try:
+            # Get timeframe-appropriate settings
+            settings = self.get_overlay_settings()
+
             pivots = self.calculate_pivot_points()
 
             if not pivots:
@@ -865,34 +871,34 @@ class ChartPanel(QWidget):
 
             # Draw each pivot level
             pivot_config = [
-                ('PP', '#FBBF24', '-', 2.0),  # Yellow, solid, thick
-                ('R1', '#EF4444', '--', 1.5),  # Red, dashed
-                ('R2', '#DC2626', '--', 1.5),
-                ('R3', '#B91C1C', ':', 1.0),
-                ('S1', '#10B981', '--', 1.5),  # Green, dashed
-                ('S2', '#059669', '--', 1.5),
-                ('S3', '#047857', ':', 1.0)
+                ('PP', '#FBBF24', '-'),  # Yellow, solid
+                ('R1', '#EF4444', '--'),  # Red, dashed
+                ('R2', '#DC2626', '--'),
+                ('R3', '#B91C1C', ':'),
+                ('S1', '#10B981', '--'),  # Green, dashed
+                ('S2', '#059669', '--'),
+                ('S3', '#047857', ':')
             ]
 
-            for name, color, linestyle, linewidth in pivot_config:
+            for name, color, linestyle in pivot_config:
                 price = pivots[name]
 
-                # Draw pivot line
+                # Draw pivot line with timeframe-based linewidth and alpha
                 self.canvas.axes.axhline(
                     y=price,
                     color=color,
                     linestyle=linestyle,
-                    linewidth=linewidth,
-                    alpha=0.7,
+                    linewidth=settings['linewidth'],
+                    alpha=settings['line_alpha'],
                     zorder=45
                 )
 
-                # Add label
+                # Add label with timeframe-based font size
                 self.canvas.axes.text(
                     2,  # Left side
                     price,
                     f'{name}: {price:.5f}',
-                    fontsize=8,
+                    fontsize=settings['font_size'],
                     color=color,
                     weight='bold',
                     ha='left',
@@ -910,6 +916,9 @@ class ChartPanel(QWidget):
             return
 
         try:
+            # Get timeframe-appropriate settings
+            settings = self.get_overlay_settings()
+
             # Get yesterday's daily candle
             rates = mt5.copy_rates_from_pos(self.current_symbol, mt5.TIMEFRAME_D1, 1, 1)
 
@@ -921,69 +930,69 @@ class ChartPanel(QWidget):
             pdl = prev_day['low']
             pdc = prev_day['close']
 
-            # Draw PDH (Previous Day High) - Red
+            # Draw PDH (Previous Day High) - Red with timeframe-based settings
             self.canvas.axes.axhline(
                 y=pdh,
                 color='#F87171',
                 linestyle='-.',
-                linewidth=2,
-                alpha=0.7,
+                linewidth=settings['linewidth'],
+                alpha=settings['line_alpha'],
                 zorder=48
             )
             self.canvas.axes.text(
                 len(self.candle_data) // 2,
                 pdh,
                 f'PDH: {pdh:.5f}',
-                fontsize=9,
+                fontsize=settings['font_size'],
                 color='#F87171',
                 weight='bold',
                 ha='center',
                 va='bottom',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#F87171', alpha=0.9, linewidth=2),
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#F87171', alpha=0.9, linewidth=settings['linewidth']),
                 zorder=49
             )
 
-            # Draw PDL (Previous Day Low) - Green
+            # Draw PDL (Previous Day Low) - Green with timeframe-based settings
             self.canvas.axes.axhline(
                 y=pdl,
                 color='#34D399',
                 linestyle='-.',
-                linewidth=2,
-                alpha=0.7,
+                linewidth=settings['linewidth'],
+                alpha=settings['line_alpha'],
                 zorder=48
             )
             self.canvas.axes.text(
                 len(self.candle_data) // 2,
                 pdl,
                 f'PDL: {pdl:.5f}',
-                fontsize=9,
+                fontsize=settings['font_size'],
                 color='#34D399',
                 weight='bold',
                 ha='center',
                 va='top',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#34D399', alpha=0.9, linewidth=2),
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#34D399', alpha=0.9, linewidth=settings['linewidth']),
                 zorder=49
             )
 
-            # Draw PDC (Previous Day Close) - Yellow
+            # Draw PDC (Previous Day Close) - Yellow with timeframe-based settings
             self.canvas.axes.axhline(
                 y=pdc,
                 color='#FCD34D',
                 linestyle='-.',
-                linewidth=2,
-                alpha=0.7,
+                linewidth=settings['linewidth'],
+                alpha=settings['line_alpha'],
                 zorder=48
             )
             self.canvas.axes.text(
                 len(self.candle_data) // 2 + 10,
                 pdc,
                 f'PDC: {pdc:.5f}',
-                fontsize=9,
+                fontsize=settings['font_size'],
                 color='#FCD34D',
                 weight='bold',
                 ha='center',
                 va='center',
-                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#FCD34D', alpha=0.9, linewidth=2),
+                bbox=dict(boxstyle='round,pad=0.4', facecolor='#0A0E27', edgecolor='#FCD34D', alpha=0.9, linewidth=settings['linewidth']),
                 zorder=49
             )
 
@@ -1452,6 +1461,21 @@ class ChartPanel(QWidget):
         except Exception as e:
             pass
 
+    def get_overlay_settings(self):
+        """Get overlay transparency and font size based on timeframe to reduce clutter"""
+        # Lower timeframes = less opacity, smaller fonts to preserve candle visibility
+        timeframe_settings = {
+            'M1': {'zone_alpha': 0.08, 'line_alpha': 0.25, 'font_size': 7, 'linewidth': 1.0},
+            'M5': {'zone_alpha': 0.10, 'line_alpha': 0.30, 'font_size': 7, 'linewidth': 1.0},
+            'M15': {'zone_alpha': 0.12, 'line_alpha': 0.35, 'font_size': 8, 'linewidth': 1.2},
+            'M30': {'zone_alpha': 0.13, 'line_alpha': 0.40, 'font_size': 8, 'linewidth': 1.2},
+            'H1': {'zone_alpha': 0.15, 'line_alpha': 0.45, 'font_size': 8, 'linewidth': 1.5},
+            'H4': {'zone_alpha': 0.18, 'line_alpha': 0.50, 'font_size': 9, 'linewidth': 1.5},
+            'D1': {'zone_alpha': 0.20, 'line_alpha': 0.55, 'font_size': 9, 'linewidth': 2.0},
+            'W1': {'zone_alpha': 0.22, 'line_alpha': 0.60, 'font_size': 10, 'linewidth': 2.0},
+        }
+        return timeframe_settings.get(self.current_timeframe, timeframe_settings['H4'])
+
     def draw_chart_overlays(self):
         """Draw FVG/OB/Liquidity zones on chart from REAL EA data"""
         try:
@@ -1643,32 +1667,35 @@ class ChartPanel(QWidget):
         if not self.candle_data or len(self.candle_data) < 20:
             return
 
+        # Get timeframe-appropriate settings
+        settings = self.get_overlay_settings()
+
         # Sample FVG in middle of chart
         start_idx = len(self.candle_data) // 3
         end_idx = start_idx + 5
         low_price = min([c['low'] for c in self.candle_data[start_idx:end_idx]])
         high_price = max([c['high'] for c in self.candle_data[start_idx:end_idx]])
 
-        # Draw FVG rectangle (cyan with transparency)
+        # Draw FVG rectangle (cyan with timeframe-based transparency)
         rect = Rectangle(
             (start_idx, low_price),
             end_idx - start_idx,
             high_price - low_price,
-            linewidth=2,
+            linewidth=settings['linewidth'],
             edgecolor='#06B6D4',
             facecolor='#06B6D4',
-            alpha=0.15,
+            alpha=settings['zone_alpha'],
             linestyle='--',
             label='FVG'
         )
         self.canvas.axes.add_patch(rect)
 
-        # Add label
+        # Add label with timeframe-based font size
         self.canvas.axes.text(
             start_idx + 0.5,
             high_price,
             'FVG',
-            fontsize=8,
+            fontsize=settings['font_size'],
             color='#06B6D4',
             weight='bold',
             bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor='#06B6D4', alpha=0.8)
@@ -1679,33 +1706,36 @@ class ChartPanel(QWidget):
         if not self.candle_data or len(self.candle_data) < 40:
             return
 
+        # Get timeframe-appropriate settings
+        settings = self.get_overlay_settings()
+
         # Sample OB in latter part of chart
         start_idx = len(self.candle_data) // 2
         end_idx = start_idx + 8
         low_price = min([c['low'] for c in self.candle_data[start_idx:end_idx]])
         high_price = max([c['high'] for c in self.candle_data[start_idx:end_idx]])
 
-        # Draw OB rectangle (yellow/orange)
+        # Draw OB rectangle (yellow/orange with timeframe-based transparency)
         color = '#F59E0B'  # Orange for bearish OB
         rect = Rectangle(
             (start_idx, low_price),
             end_idx - start_idx,
             high_price - low_price,
-            linewidth=2,
+            linewidth=settings['linewidth'],
             edgecolor=color,
             facecolor=color,
-            alpha=0.20,
+            alpha=settings['zone_alpha'],
             linestyle='-',
             label='Order Block'
         )
         self.canvas.axes.add_patch(rect)
 
-        # Add label
+        # Add label with timeframe-based font size
         self.canvas.axes.text(
             start_idx + 1,
             low_price,
             'OB',
-            fontsize=8,
+            fontsize=settings['font_size'],
             color=color,
             weight='bold',
             bbox=dict(boxstyle='round,pad=0.3', facecolor='#0A0E27', edgecolor=color, alpha=0.8)
