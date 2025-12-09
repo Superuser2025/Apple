@@ -602,6 +602,9 @@ class ChartPanel(QWidget):
         else:
             display_candles = self.candle_data
 
+        # DEBUG: Print how many candles we're actually displaying
+        print(f"[Chart] {self.current_timeframe}: Total={len(self.candle_data)}, Displaying={len(display_candles)}")
+
         self.canvas.axes.clear()
 
         if not display_candles:
@@ -614,6 +617,9 @@ class ChartPanel(QWidget):
         lows = [c['low'] for c in display_candles]
         closes = [c['close'] for c in display_candles]
         timestamps = [c.get('timestamp', 0) for c in display_candles]
+
+        # CRITICAL: Disable autoscaling before setting fixed limits
+        self.canvas.axes.autoscale(False)
 
         # CRITICAL: Set fixed X-axis limits to prevent squashing
         # Always show space for 100 candles, even if we have fewer
