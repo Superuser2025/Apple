@@ -103,9 +103,9 @@ class ChartPanel(QWidget):
         # Loading flag to prevent updates during data reload
         self.is_loading = False
 
-        # Overlay visibility flags (user can toggle these)
-        self.show_overlays = True  # FVG, OB, Liquidity zones
-        self.show_levels = True    # S/R, Pivots, PDH/PDL/PDC
+        # Overlay visibility flags (user can toggle these) - OFF BY DEFAULT
+        self.show_overlays = False  # FVG, OB, Liquidity zones - user turns ON when needed
+        self.show_levels = False    # S/R, Pivots, PDH/PDL/PDC - user turns ON when needed
 
         # MT5 connection status
         self.mt5_initialized = False
@@ -439,12 +439,12 @@ class ChartPanel(QWidget):
         # Spacing between time and overlays
         layout.addSpacing(30)
 
-        # Overlay toggle button
-        self.overlay_toggle_btn = QPushButton("📊 Overlays: ON")
+        # Overlay toggle button - OFF/RED by default
+        self.overlay_toggle_btn = QPushButton("📊 Overlays: OFF")
         self.overlay_toggle_btn.clicked.connect(self.toggle_overlays)
         self.overlay_toggle_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #10B981;
+                background-color: #EF4444;
                 color: #FFFFFF;
                 border: none;
                 border-radius: 6px;
@@ -453,22 +453,22 @@ class ChartPanel(QWidget):
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: #059669;
+                background-color: #DC2626;
             }}
             QPushButton:pressed {{
-                background-color: #047857;
+                background-color: #B91C1C;
             }}
         """)
         layout.addWidget(self.overlay_toggle_btn)
 
         layout.addSpacing(10)
 
-        # Levels toggle button
-        self.levels_toggle_btn = QPushButton("📈 Levels: ON")
+        # Levels toggle button - OFF/RED by default
+        self.levels_toggle_btn = QPushButton("📈 Levels: OFF")
         self.levels_toggle_btn.clicked.connect(self.toggle_levels)
         self.levels_toggle_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: #10B981;
+                background-color: #EF4444;
                 color: #FFFFFF;
                 border: none;
                 border-radius: 6px;
@@ -477,10 +477,10 @@ class ChartPanel(QWidget):
                 font-weight: bold;
             }}
             QPushButton:hover {{
-                background-color: #059669;
+                background-color: #DC2626;
             }}
             QPushButton:pressed {{
-                background-color: #047857;
+                background-color: #B91C1C;
             }}
         """)
         layout.addWidget(self.levels_toggle_btn)
