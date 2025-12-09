@@ -711,6 +711,10 @@ class ChartPanel(QWidget):
         except:
             pass  # Ignore layout warnings
 
+        # DEBUG: Check final xlim after all drawing
+        final_xlim = self.canvas.axes.get_xlim()
+        print(f"[Chart] {self.current_timeframe}: Final xlim = {final_xlim}, Expected = (-2, 102)")
+
         self.canvas.draw()
         self.canvas.flush_events()
 
