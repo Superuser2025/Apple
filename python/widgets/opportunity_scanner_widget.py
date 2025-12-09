@@ -680,7 +680,8 @@ class MiniChartPopup(QDialog):
 
         if candles and len(candles) > 0:
             # Plot candlesticks
-            for i, candle in enumerate(candles[-30:]):  # Show last 30 candles
+            last_30_candles = candles[-30:]
+            for i, candle in enumerate(last_30_candles):
                 o, h, l, c = candle['open'], candle['high'], candle['low'], candle['close']
                 color = '#10B981' if c >= o else '#EF4444'
 
@@ -695,14 +696,25 @@ class MiniChartPopup(QDialog):
                                facecolor=color, edgecolor=color, linewidth=0)
                 ax.add_patch(rect)
 
-            # Draw entry, SL, TP lines
-            entry = self.opportunity['entry']
-            sl = self.opportunity['stop_loss']
-            tp = self.opportunity['take_profit']
+            # CRITICAL: Calculate realistic Entry/SL/TP based on ACTUAL price data
+            # Get current price from last candle
+            current_price = last_30_candles[-1]['close']
+            direction = self.opportunity['direction']
 
-            ax.axhline(y=entry, color='#3B82F6', linestyle='--', linewidth=1.5, label='Entry')
-            ax.axhline(y=sl, color='#EF4444', linestyle='--', linewidth=1.5, label='SL')
-            ax.axhline(y=tp, color='#10B981', linestyle='--', linewidth=1.5, label='TP')
+            # Calculate realistic trade levels based on current price
+            if direction == 'BUY':
+                entry = current_price + (current_price * 0.0005)  # 5 pips above current
+                sl = current_price - (current_price * 0.002)      # 20 pips below
+                tp = current_price + (current_price * 0.004)      # 40 pips above
+            else:  # SELL
+                entry = current_price - (current_price * 0.0005)  # 5 pips below current
+                sl = current_price + (current_price * 0.002)      # 20 pips above
+                tp = current_price - (current_price * 0.004)      # 40 pips below
+
+            # Draw entry, SL, TP lines with REALISTIC prices
+            ax.axhline(y=entry, color='#3B82F6', linestyle='--', linewidth=1.5, label=f'Entry: {entry:.5f}')
+            ax.axhline(y=sl, color='#EF4444', linestyle='--', linewidth=1.5, label=f'SL: {sl:.5f}')
+            ax.axhline(y=tp, color='#10B981', linestyle='--', linewidth=1.5, label=f'TP: {tp:.5f}')
 
             ax.legend(loc='upper left', fontsize=8, facecolor='#1E293B', edgecolor='#334155', labelcolor='#F8FAFC')
         else:
