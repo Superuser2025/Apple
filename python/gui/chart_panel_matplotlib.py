@@ -29,6 +29,7 @@ logging.getLogger('matplotlib').setLevel(logging.ERROR)
 logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
 from core.data_manager import data_manager
+from core.visual_controls import visual_controls
 
 
 # Simple theme and settings (inline replacement for config module)
@@ -745,20 +746,22 @@ class ChartPanel(QWidget):
 
         # Draw overlays based on user toggle settings
         if self.show_overlays:
-            # Draw institutional overlays (FVG, OB, Liquidity)
+            # Draw institutional overlays (FVG, OB, Liquidity) - RESPECT VISUAL CONTROLS
             self.draw_chart_overlays()
 
-            # Draw candlestick patterns with timeframes
-            self.draw_candlestick_patterns()
+            # Draw candlestick patterns with timeframes - CHECK VISUAL CONTROL
+            if visual_controls.should_draw_pattern_boxes():
+                self.draw_candlestick_patterns()
 
-            # Draw active patterns panel overlay (MT5 EA style)
-            self.draw_active_patterns_panel()
+                # Draw active patterns panel overlay (MT5 EA style)
+                self.draw_active_patterns_panel()
 
-            # Draw price action commentary boxes (MT5 EA style)
-            self.draw_price_action_commentary()
+            # Draw price action commentary boxes (MT5 EA style) - CHECK VISUAL CONTROL
+            if visual_controls.should_draw_commentary():
+                self.draw_price_action_commentary()
 
-            # Draw system status messages (MT5 EA style)
-            self.draw_system_status_messages()
+                # Draw system status messages (MT5 EA style)
+                self.draw_system_status_messages()
 
         if self.show_levels:
             # Draw key chart levels (support/resistance, pivots, PDH/PDL/PDC, sessions)
@@ -1532,34 +1535,37 @@ class ChartPanel(QWidget):
         return timeframe_settings.get(self.current_timeframe, timeframe_settings['H4'])
 
     def draw_chart_overlays(self):
-        """Draw FVG/OB/Liquidity zones on chart from REAL EA data"""
+        """Draw FVG/OB/Liquidity zones on chart from REAL EA data - RESPECTS VISUAL CONTROLS"""
         try:
             # Get zone data from EA via data_manager
             zones = data_manager.get_zones()
 
-            # Draw FVGs (Fair Value Gaps)
-            fvgs = zones.get('fvgs', [])
-            if fvgs and len(fvgs) > 0:
-                self.draw_fvg_zones(fvgs)
-            else:
-                # Fallback to sample if no real data
-                self.draw_sample_fvg()
+            # Draw FVGs (Fair Value Gaps) - CHECK VISUAL CONTROL
+            if visual_controls.should_draw_fvg_zones():
+                fvgs = zones.get('fvgs', [])
+                if fvgs and len(fvgs) > 0:
+                    self.draw_fvg_zones(fvgs)
+                else:
+                    # Fallback to sample if no real data
+                    self.draw_sample_fvg()
 
-            # Draw Order Blocks
-            order_blocks = zones.get('order_blocks', [])
-            if order_blocks and len(order_blocks) > 0:
-                self.draw_order_block_zones(order_blocks)
-            else:
-                # Fallback to sample if no real data
-                self.draw_sample_order_block()
+            # Draw Order Blocks - CHECK VISUAL CONTROL
+            if visual_controls.should_draw_order_blocks():
+                order_blocks = zones.get('order_blocks', [])
+                if order_blocks and len(order_blocks) > 0:
+                    self.draw_order_block_zones(order_blocks)
+                else:
+                    # Fallback to sample if no real data
+                    self.draw_sample_order_block()
 
-            # Draw Liquidity Zones
-            liquidity = zones.get('liquidity', [])
-            if liquidity and len(liquidity) > 0:
-                self.draw_liquidity_zones(liquidity)
-            else:
-                # Fallback to sample if no real data
-                self.draw_sample_liquidity()
+            # Draw Liquidity Zones - CHECK VISUAL CONTROL
+            if visual_controls.should_draw_liquidity_lines():
+                liquidity = zones.get('liquidity', [])
+                if liquidity and len(liquidity) > 0:
+                    self.draw_liquidity_zones(liquidity)
+                else:
+                    # Fallback to sample if no real data
+                    self.draw_sample_liquidity()
 
         except Exception as e:
             pass
