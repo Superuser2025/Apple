@@ -9,7 +9,8 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
 from datetime import datetime
 from typing import List, Dict, Optional
-import random
+import pandas as pd
+import numpy as np
 
 
 class OpportunityCard(QFrame):
@@ -267,33 +268,31 @@ class OpportunityScannerWidget(QWidget):
             self.scan_market()
 
     def scan_market(self):
-        """Scan all pairs for trading opportunities"""
-        print(f"[DEBUG] scan_market() called at {datetime.now().strftime('%H:%M:%S')}")
+        """Scan all pairs for trading opportunities using REAL MT5 data"""
+        print(f"[Opportunity Scanner] Scanning at {datetime.now().strftime('%H:%M:%S')}")
         self.blink_status()
 
-        # Try to use real MT5 data first
+        # Only scan if MT5 is connected
         if self.using_real_data and self.mt5_connector:
             self.opportunities = self.scan_real_market_data()
-            print(f"[Opportunity Scanner] Scanned REAL MT5 data: {len(self.opportunities)} opportunities found")
-
-            # If no real opportunities found, show demo data as fallback (EA might not have sent data yet)
-            if len(self.opportunities) == 0:
-                print(f"[Opportunity Scanner] No real opportunities found - using demo data as fallback")
-                self.opportunities = self.generate_opportunities()
+            print(f"[Opportunity Scanner] ✓ Found {len(self.opportunities)} real opportunities")
         else:
-            # MT5 not connected yet - show demo data temporarily
-            print(f"[Opportunity Scanner] MT5 not connected - showing demo data temporarily")
-            self.opportunities = self.generate_opportunities()
+            # MT5 not connected - show message
+            print(f"[Opportunity Scanner] ⚠️ MT5 not connected - no opportunities")
+            self.opportunities = []
 
         # Sort by quality score (highest first)
         self.opportunities.sort(key=lambda x: x['quality_score'], reverse=True)
 
         # Update display
         self.update_display()
-        print(f"[DEBUG] Display updated with {len(self.opportunities)} cards")
 
-        # Update time
+        # Update time and status
         self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
+        if self.using_real_data:
+            self.status_label.setText("🟢 LIVE DATA")
+        else:
+            self.status_label.setText("🔴 DISCONNECTED")
 
     def generate_opportunities(self) -> List[Dict]:
         """Generate trading opportunities (demo version with realistic data)"""
@@ -366,103 +365,233 @@ class OpportunityScannerWidget(QWidget):
         """Scan real market data from MT5 for trading opportunities"""
         opportunities = []
 
-        # Scan top pairs for opportunities
+        # Scan all pairs across timeframes
         timeframes = ['H1', 'H4']  # Focus on these timeframes
 
-        for pair in self.pairs_to_scan[:5]:  # Scan top 5 pairs to avoid overload
+        for pair in self.pairs_to_scan:  # Scan all pairs
             for timeframe in timeframes:
-                # Get candle data from MT5
-                df = self.mt5_connector.get_candles(pair, timeframe, 100)
+                try:
+                    # Get candle data from MT5
+                    df = self.mt5_connector.get_candles(pair, timeframe, 200)
 
-                if df is None or len(df) < 50:
+                    if df is None or len(df) < 100:
+                        continue
+
+                    # Analyze for trading opportunity
+                    opp = self.analyze_opportunity(pair, timeframe, df)
+                    if opp:
+                        opportunities.append(opp)
+                        print(f"[Opportunity Scanner] ✓ {pair} {timeframe}: Score {opp['quality_score']}")
+
+                except Exception as e:
+                    print(f"[Opportunity Scanner] Error scanning {pair} {timeframe}: {e}")
                     continue
-
-                # Analyze for trading opportunity
-                opp = self.analyze_opportunity(pair, timeframe, df)
-                if opp:
-                    opportunities.append(opp)
 
         return opportunities
 
     def analyze_opportunity(self, symbol: str, timeframe: str, df) -> Optional[Dict]:
-        """Analyze candle data for a trading opportunity"""
-        try:
-            # Get current and recent prices
-            current_close = df['close'].iloc[-1]
-            current_high = df['high'].iloc[-1]
-            current_low = df['low'].iloc[-1]
+        """
+        Analyze candle data for HIGH-QUALITY trading opportunities
 
-            # Calculate simple trend (20-period SMA)
-            if len(df) >= 20:
-                sma_20 = df['close'].tail(20).mean()
-                trend = 'BUY' if current_close > sma_20 else 'SELL'
-            else:
+        Uses confluence of:
+        - Pattern detection (pin bars, engulfing, inside bars)
+        - Trend alignment (EMA 20/50/200)
+        - Momentum (RSI, Volume)
+        - Structure (support/resistance)
+        - ATR-based positioning
+        """
+        try:
+            if len(df) < 100:
                 return None
 
-            # Calculate volatility (ATR-like)
-            df['hl'] = df['high'] - df['low']
-            atr = df['hl'].tail(14).mean()
+            # === CALCULATE INDICATORS ===
+            close = df['close'].values
+            high = df['high'].values
+            low = df['low'].values
+            open_price = df['open'].values
 
-            # Set entry/SL/TP based on trend
-            if trend == 'BUY':
+            current_close = close[-1]
+            current_high = high[-1]
+            current_low = low[-1]
+            current_open = open_price[-1]
+            prev_close = close[-2]
+            prev_open = open_price[-2]
+            prev_high = high[-2]
+            prev_low = low[-2]
+
+            # Calculate EMAs
+            ema_20 = pd.Series(close).ewm(span=20, adjust=False).mean().iloc[-1]
+            ema_50 = pd.Series(close).ewm(span=50, adjust=False).mean().iloc[-1]
+            ema_200 = pd.Series(close).ewm(span=200, adjust=False).mean().iloc[-1] if len(close) >= 200 else ema_50
+
+            # Calculate ATR for stop loss and take profit
+            tr = []
+            for i in range(1, len(df)):
+                tr_value = max(
+                    high[i] - low[i],
+                    abs(high[i] - close[i-1]),
+                    abs(low[i] - close[i-1])
+                )
+                tr.append(tr_value)
+            atr = np.mean(tr[-14:]) if len(tr) >= 14 else (high[-1] - low[-1])
+
+            # Calculate RSI
+            delta = pd.Series(close).diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+            rs = gain / loss
+            rsi = 100 - (100 / (1 + rs))
+            current_rsi = rsi.iloc[-1] if len(rsi) > 0 else 50
+
+            # === DETECT PATTERNS ===
+            pattern_detected = None
+            pattern_direction = None
+            quality_score = 50
+            reasons = []
+
+            # Bullish Engulfing
+            if (current_close > current_open and  # Current candle is bullish
+                prev_close < prev_open and  # Previous candle was bearish
+                current_close > prev_open and  # Current close above prev open
+                current_open < prev_close):  # Current open below prev close
+                pattern_detected = "Bullish Engulfing"
+                pattern_direction = "BUY"
+                quality_score += 15
+                reasons.append("Bullish Engulfing")
+
+            # Bearish Engulfing
+            elif (current_close < current_open and  # Current candle is bearish
+                  prev_close > prev_open and  # Previous candle was bullish
+                  current_close < prev_open and  # Current close below prev open
+                  current_open > prev_close):  # Current open above prev close
+                pattern_detected = "Bearish Engulfing"
+                pattern_direction = "SELL"
+                quality_score += 15
+                reasons.append("Bearish Engulfing")
+
+            # Bullish Pin Bar
+            elif (current_close > current_open and  # Bullish candle
+                  (current_low - min(current_open, current_close)) > 2 * abs(current_close - current_open) and  # Long lower wick
+                  (current_high - max(current_open, current_close)) < 0.5 * abs(current_close - current_open)):  # Small upper wick
+                pattern_detected = "Bullish Pin Bar"
+                pattern_direction = "BUY"
+                quality_score += 12
+                reasons.append("Bullish Pin Bar")
+
+            # Bearish Pin Bar
+            elif (current_close < current_open and  # Bearish candle
+                  (max(current_open, current_close) - current_high) < 0.5 * abs(current_close - current_open) and  # Small upper wick
+                  (min(current_open, current_close) - current_low) > 2 * abs(current_close - current_open)):  # Long lower wick
+                pattern_detected = "Bearish Pin Bar"
+                pattern_direction = "SELL"
+                quality_score += 12
+                reasons.append("Bearish Pin Bar")
+
+            # No pattern detected
+            else:
+                # Check for simple trend continuation
+                if current_close > ema_20 and ema_20 > ema_50:
+                    pattern_direction = "BUY"
+                    pattern_detected = "Trend Continuation"
+                    quality_score += 5
+                elif current_close < ema_20 and ema_20 < ema_50:
+                    pattern_direction = "SELL"
+                    pattern_detected = "Trend Continuation"
+                    quality_score += 5
+                else:
+                    return None  # No clear setup
+
+            # === VALIDATE TREND ALIGNMENT ===
+            if pattern_direction == "BUY":
+                if current_close > ema_20 > ema_50 > ema_200:
+                    quality_score += 20
+                    reasons.append("Strong Uptrend")
+                elif current_close > ema_20 > ema_50:
+                    quality_score += 12
+                    reasons.append("Uptrend Aligned")
+                else:
+                    quality_score -= 10  # Against trend
+
+            elif pattern_direction == "SELL":
+                if current_close < ema_20 < ema_50 < ema_200:
+                    quality_score += 20
+                    reasons.append("Strong Downtrend")
+                elif current_close < ema_20 < ema_50:
+                    quality_score += 12
+                    reasons.append("Downtrend Aligned")
+                else:
+                    quality_score -= 10  # Against trend
+
+            # === VALIDATE RSI ===
+            if pattern_direction == "BUY" and 30 < current_rsi < 70:
+                quality_score += 10
+                reasons.append("RSI Favorable")
+            elif pattern_direction == "SELL" and 30 < current_rsi < 70:
+                quality_score += 10
+                reasons.append("RSI Favorable")
+            elif (pattern_direction == "BUY" and current_rsi < 30) or (pattern_direction == "SELL" and current_rsi > 70):
+                quality_score += 8
+                reasons.append("RSI Oversold/Overbought")
+
+            # === CHECK VOLUME ===
+            if 'volume' in df.columns or 'tick_volume' in df.columns:
+                vol_col = 'volume' if 'volume' in df.columns else 'tick_volume'
+                avg_volume = df[vol_col].tail(20).mean()
+                current_volume = df[vol_col].iloc[-1]
+
+                if current_volume > avg_volume * 1.8:
+                    quality_score += 15
+                    reasons.append("High Volume")
+                elif current_volume > avg_volume * 1.3:
+                    quality_score += 8
+                    reasons.append("Above Avg Volume")
+
+            # === CALCULATE ENTRY, SL, TP ===
+            if pattern_direction == "BUY":
                 entry = current_close
-                stop_loss = entry - (atr * 1.5)
-                take_profit = entry + (atr * 3.0)
+                stop_loss = current_low - (atr * 0.5)  # Below pattern low
+                take_profit = entry + (atr * 2.5)  # 2.5 ATR target
+
             else:  # SELL
                 entry = current_close
-                stop_loss = entry + (atr * 1.5)
-                take_profit = entry - (atr * 3.0)
+                stop_loss = current_high + (atr * 0.5)  # Above pattern high
+                take_profit = entry - (atr * 2.5)  # 2.5 ATR target
 
             # Calculate risk:reward
             risk = abs(entry - stop_loss)
             reward = abs(take_profit - entry)
             rr = reward / risk if risk > 0 else 0
 
-            # Calculate quality score based on conditions
-            quality_score = 60
-            reasons = []
+            # Bonus for good R:R
+            if rr >= 2.5:
+                quality_score += 8
+                reasons.append(f"R:R {rr:.1f}")
 
-            # Check for volume spike
-            if 'volume' in df.columns and len(df) >= 20:
-                avg_volume = df['volume'].tail(20).mean()
-                current_volume = df['volume'].iloc[-1]
-                if current_volume > avg_volume * 1.5:
-                    quality_score += 10
-                    reasons.append('Volume Spike')
-
-            # Check for strong trend
-            if len(df) >= 50:
-                sma_50 = df['close'].tail(50).mean()
-                if (trend == 'BUY' and current_close > sma_50) or (trend == 'SELL' and current_close < sma_50):
-                    quality_score += 15
-                    reasons.append('Trend Alignment')
-
-            # Check for good R:R
-            if rr >= 2.0:
-                quality_score += 10
-                reasons.append('High R:R Ratio')
-
-            # Only return if quality score is decent
+            # === QUALITY THRESHOLD ===
+            # Only return opportunities with score > 65
             if quality_score < 65:
                 return None
 
+            # Ensure we have reasons
             if not reasons:
-                reasons = ['Price Action', 'Technical Setup']
+                reasons = [pattern_detected]
 
             return {
                 'symbol': symbol,
-                'direction': trend,
+                'direction': pattern_direction,
                 'timeframe': timeframe,
                 'entry': float(entry),
                 'stop_loss': float(stop_loss),
                 'take_profit': float(take_profit),
                 'risk_reward': float(rr),
-                'quality_score': quality_score,
-                'confluence_reasons': reasons
+                'quality_score': min(100, quality_score),  # Cap at 100
+                'confluence_reasons': reasons[:4]  # Top 4 reasons
             }
 
         except Exception as e:
             print(f"[Opportunity Scanner] Error analyzing {symbol}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def update_display(self):
