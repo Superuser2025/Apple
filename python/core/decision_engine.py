@@ -84,14 +84,19 @@ class DecisionEngine:
         self.min_confidence_to_enter = 0.75  # Need 75% confidence to enter
         self.news_lookahead_minutes = 5  # Block trades if news in 5min
 
-        # Weights for confidence calculation
+        # Weights for confidence calculation (WITH ML)
         self.weights = {
-            'pattern_score': 0.35,  # 35% - Pattern quality most important
-            'momentum': 0.25,        # 25% - Momentum ranking
-            'trend_alignment': 0.15, # 15% - Multi-timeframe alignment
-            'divergence': 0.15,      # 15% - Correlation divergence
+            'pattern_score': 0.30,  # 30% - Pattern quality
+            'momentum': 0.20,        # 20% - Momentum ranking
+            'trend_alignment': 0.10, # 10% - Multi-timeframe alignment
+            'divergence': 0.10,      # 10% - Correlation divergence
             'volume': 0.10,          # 10% - Volume confirmation
+            'ml_prediction': 0.20,   # 20% - ML model prediction (NEW!)
         }
+
+        # ML settings
+        self.use_ml = False  # Enable when model is loaded
+        self.ml_min_confidence = 0.65  # Minimum ML confidence
 
     def evaluate_opportunity(
         self,
@@ -100,7 +105,8 @@ class DecisionEngine:
         has_divergence: bool = False,
         upcoming_news_minutes: int = 999,
         risk_manager = None,
-        mt5_connector = None
+        mt5_connector = None,
+        ml_prediction = None  # NEW: ML prediction result
     ) -> TradeDecision:
         """
         Evaluate a single trading opportunity
@@ -243,6 +249,23 @@ class DecisionEngine:
             confidence_components['volume'] = 0.7
         else:
             confidence_components['volume'] = 0.4
+
+        # ========================================
+        # ML PREDICTION (NEW!)
+        # ========================================
+        if ml_prediction and self.use_ml:
+            ml_score = ml_prediction.probability_win
+
+            # Only trust ML if confidence is high enough
+            if ml_prediction.confidence >= self.ml_min_confidence:
+                confidence_components['ml_prediction'] = ml_score
+                decision.reasons.append(f"ML: {ml_prediction.signal} ({ml_prediction.probability_win*100:.0f}%)")
+            else:
+                # Low ML confidence - use neutral score
+                confidence_components['ml_prediction'] = 0.5
+        else:
+            # No ML - use neutral score
+            confidence_components['ml_prediction'] = 0.5
 
         # Weighted confidence score
         confidence = sum(
