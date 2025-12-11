@@ -13,6 +13,7 @@ from datetime import datetime
 # Import all improvement widgets
 from widgets.opportunity_scanner_widget import OpportunityScannerWidget
 from widgets.trade_decision_widget import TradeDecisionWidget
+from widgets.backtest_widget import BacktestWidget
 from widgets.price_action_commentary_widget import PriceActionCommentaryWidget
 from widgets.correlation_heatmap_widget import CorrelationHeatmapWidget
 from widgets.volatility_position_widget import VolatilityPositionWidget
@@ -258,6 +259,13 @@ class MainWindow(QMainWindow):
         self.journal_widget = TradeJournalWidget()
         journal_layout.addWidget(self.journal_widget)
         tabs.addTab(journal_tab, "📝 Journal")
+
+        # Tab 6: Backtest (NEW!)
+        backtest_tab = QWidget()
+        backtest_layout = QVBoxLayout(backtest_tab)
+        self.backtest_widget = BacktestWidget(mt5_connector=self.mt5_connector)
+        backtest_layout.addWidget(self.backtest_widget)
+        tabs.addTab(backtest_tab, "📊 Backtest")
 
         return tabs
 
