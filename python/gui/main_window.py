@@ -12,6 +12,7 @@ from datetime import datetime
 
 # Import all improvement widgets
 from widgets.opportunity_scanner_widget import OpportunityScannerWidget
+from widgets.trade_decision_widget import TradeDecisionWidget
 from widgets.price_action_commentary_widget import PriceActionCommentaryWidget
 from widgets.correlation_heatmap_widget import CorrelationHeatmapWidget
 from widgets.volatility_position_widget import VolatilityPositionWidget
@@ -27,6 +28,8 @@ from gui.chart_panel_matplotlib import ChartPanel
 from gui.controls_panel import ControlsPanel
 from gui.symbol_manager_dialog import SymbolManagerDialog
 from core.mt5_connector import MT5Connector
+from core.decision_engine import decision_engine
+from core.risk_manager import risk_manager
 
 
 class MainWindow(QMainWindow):
@@ -213,12 +216,20 @@ class MainWindow(QMainWindow):
         tabs = QTabWidget()
         tabs.setTabPosition(QTabWidget.TabPosition.North)
 
-        # Tab 1: Position Sizing
+        # Tab 1: Trade Decision (MOST IMPORTANT - NEW!)
+        decision_tab = QWidget()
+        decision_layout = QVBoxLayout(decision_tab)
+        self.decision_widget = TradeDecisionWidget()
+        self.decision_widget.execute_trade.connect(self.on_execute_trade_from_decision)
+        decision_layout.addWidget(self.decision_widget)
+        tabs.addTab(decision_tab, "🎯 DECISION")
+
+        # Tab 2: Position Sizing
         sizing_tab = QWidget()
         sizing_layout = QVBoxLayout(sizing_tab)
         self.position_widget = VolatilityPositionWidget()
         sizing_layout.addWidget(self.position_widget)
-        tabs.addTab(sizing_tab, "🎯 Position Size")
+        tabs.addTab(sizing_tab, "📊 Position Size")
 
         # Tab 2: Risk-Reward
         rr_tab = QWidget()
@@ -321,6 +332,32 @@ class MainWindow(QMainWindow):
         # Update status bar
         self.status_bar.showMessage(f"Updated: {datetime.now().strftime('%H:%M:%S')}", 2000)
 
+        # ========================================
+        # DECISION ENGINE - Evaluates trade opportunities
+        # ========================================
+        if hasattr(self, 'decision_widget') and hasattr(self, 'scanner_widget'):
+            # Get opportunities from scanner
+            opportunities = self.scanner_widget.opportunities
+
+            if opportunities and len(opportunities) > 0:
+                # Get best decision from decision engine
+                best_decision = decision_engine.get_best_decision(
+                    opportunities=opportunities,
+                    momentum_scanner=self.momentum_widget if hasattr(self, 'momentum_widget') else None,
+                    risk_manager=risk_manager,
+                    mt5_connector=self.mt5_connector
+                )
+
+                if best_decision:
+                    # Update decision widget
+                    self.decision_widget.update_decision(best_decision)
+                else:
+                    # No good opportunities
+                    self.decision_widget.clear_display()
+            else:
+                # No opportunities from scanner
+                self.decision_widget.clear_display()
+
     def on_mt5_connection_changed(self, connected: bool):
         """Handle MT5 connection status change"""
         if connected:
@@ -408,6 +445,101 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.status_label.setText(f"✗ Failed to send {order_type} order: {e}")
             print(f"[Main Window] Error sending order: {e}")
+
+    def on_execute_trade_from_decision(self, trade_params: dict):
+        """
+        Handle trade execution from decision widget
+        This method includes FULL risk validation (NEW!)
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        symbol = trade_params['symbol']
+        direction = trade_params['direction']
+        lot_size = trade_params['lot_size']
+        entry = trade_params['entry']
+        stop_loss = trade_params['stop_loss']
+        take_profit = trade_params['take_profit']
+
+        print(f"[Main Window] Execute trade requested: {direction} {lot_size} lots {symbol}")
+
+        # ========================================
+        # STEP 1: Validate Risk Limits (CRITICAL!)
+        # ========================================
+        # Check symbol limit
+        can_trade, limit_msg = risk_manager.check_symbol_limit(symbol, lot_size)
+        if not can_trade:
+            error_msg = f"❌ Trade Blocked: {limit_msg}"
+            QMessageBox.critical(self, "Risk Limit Exceeded", error_msg)
+            self.status_label.setText(error_msg)
+            print(f"[Main Window] {error_msg}")
+            return
+
+        # Check daily limit
+        daily_ok, daily_msg = risk_manager.check_daily_limit()
+        if not daily_ok:
+            error_msg = f"❌ Trade Blocked: {daily_msg}"
+            QMessageBox.critical(self, "Daily Limit Reached", error_msg)
+            self.status_label.setText(error_msg)
+            print(f"[Main Window] {error_msg}")
+            return
+
+        # Check weekly limit
+        weekly_ok, weekly_msg = risk_manager.check_weekly_limit()
+        if not weekly_ok:
+            error_msg = f"❌ Trade Blocked: {weekly_msg}"
+            QMessageBox.critical(self, "Weekly Limit Reached", error_msg)
+            self.status_label.setText(error_msg)
+            print(f"[Main Window] {error_msg}")
+            return
+
+        # ========================================
+        # STEP 2: Confirmation Dialog
+        # ========================================
+        confirmation = QMessageBox.question(
+            self,
+            "Confirm Trade",
+            f"Execute {direction} trade?\n\n"
+            f"Symbol: {symbol}\n"
+            f"Lot Size: {lot_size:.2f}\n"
+            f"Entry: {entry:.5f}\n"
+            f"Stop Loss: {stop_loss:.5f}\n"
+            f"Take Profit: {take_profit:.5f}\n\n"
+            f"Risk validated ✓",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+
+        if confirmation != QMessageBox.StandardButton.Yes:
+            self.status_label.setText("Trade cancelled by user")
+            return
+
+        # ========================================
+        # STEP 3: Send Order to MT5
+        # ========================================
+        from core.command_manager import command_manager
+        try:
+            command_manager.send_order(
+                order_type=direction,
+                symbol=symbol,
+                lot_size=lot_size,
+                stop_loss=stop_loss,
+                take_profit=take_profit
+            )
+
+            # Update risk manager (optimistic update)
+            risk_manager.update_symbol_exposure(symbol, lot_size, is_opening=True)
+
+            success_msg = f"✅ {direction} order sent: {lot_size:.2f} lots {symbol}"
+            self.status_label.setText(success_msg)
+            print(f"[Main Window] {success_msg}")
+
+            QMessageBox.information(self, "Trade Executed", success_msg)
+
+        except Exception as e:
+            error_msg = f"✗ Failed to send order: {e}"
+            self.status_label.setText(error_msg)
+            print(f"[Main Window] {error_msg}")
+            QMessageBox.critical(self, "Execution Error", error_msg)
 
     def on_setting_changed(self, setting_name: str, value):
         """Handle setting change from controls panel"""
