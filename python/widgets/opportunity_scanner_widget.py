@@ -569,7 +569,7 @@ class OpportunityScannerWidget(QWidget):
 
             # === QUALITY THRESHOLD ===
             # Only return opportunities with score > 65
-            if quality_score < 65:
+            if quality_score < 50:  # Lowered from 65 to 50 to see more opportunities
                 return None
 
             # Ensure we have reasons
