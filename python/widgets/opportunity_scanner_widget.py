@@ -380,9 +380,9 @@ class OpportunityScannerWidget(QWidget):
             'entry': 1.10500,
             'stop_loss': 1.10200,
             'take_profit': 1.11100,
-            'rr': 2.0,
+            'risk_reward': 2.0,  # Fixed: was 'rr', card expects 'risk_reward'
             'quality_score': 75,
-            'reasons': ['TEST OPPORTUNITY', 'Verify cards display', 'If you see this, display works!']
+            'confluence_reasons': ['TEST OPPORTUNITY', 'Verify cards display', 'If you see this, display works!']  # Fixed: was 'reasons'
         }
         opportunities.append(fake_opp)
         print(f"🧪 [TEST] Added fake opportunity: {fake_opp}")
