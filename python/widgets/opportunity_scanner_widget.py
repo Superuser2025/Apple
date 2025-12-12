@@ -142,6 +142,7 @@ class OpportunityScannerWidget(QWidget):
     """
 
     opportunity_selected = pyqtSignal(dict)
+    opportunities_updated = pyqtSignal(list)  # Emits list of opportunities after each scan
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -286,6 +287,9 @@ class OpportunityScannerWidget(QWidget):
 
         # Update display
         self.update_display()
+
+        # Emit signal for decision engine
+        self.opportunities_updated.emit(self.opportunities)
 
         # Update time and status
         self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
