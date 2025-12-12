@@ -81,6 +81,8 @@ class MainWindow(QMainWindow):
         self.scanner_widget.setMaximumHeight(280)  # Increased from 220 for better visibility
         # Give scanner access to MT5 connector immediately
         self.scanner_widget.set_mt5_connector(self.mt5_connector)
+        # Connect scanner to decision engine
+        self.scanner_widget.opportunities_updated.connect(self.on_opportunities_updated)
         main_layout.addWidget(self.scanner_widget)
 
         # === MAIN CONTENT (3 COLUMNS) ===
@@ -704,6 +706,32 @@ class MainWindow(QMainWindow):
                 color: #ffffff;
             }
         """)
+
+    def on_opportunities_updated(self, opportunities: list):
+        """
+        Handle updated opportunities from scanner
+        Evaluates them with decision engine and updates decision widget
+        """
+        if not opportunities or not hasattr(self, 'decision_widget'):
+            return
+
+        print(f"[Decision Engine] Evaluating {len(opportunities)} opportunities")
+
+        # Evaluate opportunities using decision engine
+        decisions = decision_engine.scan_all_opportunities(
+            opportunities=opportunities,
+            momentum_scanner=self.momentum_widget if hasattr(self, 'momentum_widget') else None,
+            correlation_analyzer=None,
+            news_predictor=None,
+            risk_manager=risk_manager,
+            mt5_connector=self.mt5_connector
+        )
+
+        # Update decision widget with best decision
+        if decisions:
+            best_decision = decisions[0]  # Highest confidence
+            self.decision_widget.update_decision(best_decision)
+            print(f"[Decision Engine] Best: {best_decision.symbol} {best_decision.action.value} (confidence: {best_decision.confidence:.0%})")
 
     def closeEvent(self, event):
         """Handle window close event"""
