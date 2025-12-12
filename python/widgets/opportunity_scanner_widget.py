@@ -369,6 +369,28 @@ class OpportunityScannerWidget(QWidget):
         """Scan real market data from MT5 for trading opportunities"""
         opportunities = []
 
+        # === TEMPORARY TEST: Add a fake opportunity to verify display works ===
+        print("=" * 80)
+        print("🧪 [TEST] Creating fake opportunity to verify display...")
+        print("=" * 80)
+        fake_opp = {
+            'symbol': 'EURUSD',
+            'timeframe': 'H4',
+            'direction': 'BUY',
+            'entry': 1.10500,
+            'stop_loss': 1.10200,
+            'take_profit': 1.11100,
+            'rr': 2.0,
+            'quality_score': 75,
+            'reasons': ['TEST OPPORTUNITY', 'Verify cards display', 'If you see this, display works!']
+        }
+        opportunities.append(fake_opp)
+        print(f"🧪 [TEST] Added fake opportunity: {fake_opp}")
+        print("=" * 80)
+        return opportunities  # Return immediately with test opportunity
+
+        # === REST OF SCAN DISABLED FOR TESTING ===
+
         # Scan all pairs across timeframes
         timeframes = ['H1', 'H4']  # Focus on these timeframes
 
