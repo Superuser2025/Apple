@@ -60,14 +60,13 @@ class OpportunityCard(QFrame):
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(4)
 
-        # Header: Symbol + Timeframe + Direction + Score
+        # Header: Symbol + Direction + Score
         header_layout = QHBoxLayout()
 
-        # Symbol and Timeframe together
-        symbol_tf = QLabel(f"{self.opportunity['symbol']} • {self.opportunity['timeframe']}")
-        symbol_tf.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        symbol_tf.setStyleSheet("color: #FFFFFF;")
-        header_layout.addWidget(symbol_tf)
+        symbol_label = QLabel(self.opportunity['symbol'])
+        symbol_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        symbol_label.setStyleSheet("color: #FFFFFF;")
+        header_layout.addWidget(symbol_label)
 
         direction = self.opportunity['direction']
         dir_color = '#10B981' if direction == 'BUY' else '#EF4444'
@@ -105,9 +104,7 @@ class OpportunityCard(QFrame):
         tp_text.setStyleSheet("color: #10B981;")
         entry_layout.addWidget(tp_text)
 
-        # Handle both 'risk_reward' and 'rr' keys for compatibility
-        rr_value = self.opportunity.get('risk_reward') or self.opportunity.get('rr', 0)
-        rr_text = QLabel(f"R:R {rr_value:.1f}")
+        rr_text = QLabel(f"R:R {self.opportunity['risk_reward']:.1f}")
         rr_text.setFont(QFont("Courier", 9, QFont.Weight.Bold))
         rr_text.setStyleSheet("color: #3B82F6;")
         entry_layout.addWidget(rr_text)
@@ -115,14 +112,20 @@ class OpportunityCard(QFrame):
         entry_layout.addStretch()
         layout.addLayout(entry_layout)
 
-        # Confluence reasons - handle both key names for compatibility
-        reasons = self.opportunity.get('confluence_reasons') or self.opportunity.get('reasons', [])
+        # Confluence reasons
+        reasons = self.opportunity.get('confluence_reasons', [])
         reasons_text = " • ".join(reasons[:3])  # Top 3 reasons
         reasons_label = QLabel(f"✓ {reasons_text}")
         reasons_label.setFont(QFont("Arial", 8))
         reasons_label.setStyleSheet("color: #D1D5DB;")
         reasons_label.setWordWrap(True)
         layout.addWidget(reasons_label)
+
+        # Timeframe
+        tf_label = QLabel(f"⏱ {self.opportunity['timeframe']}")
+        tf_label.setFont(QFont("Arial", 8))
+        tf_label.setStyleSheet("color: #9CA3AF;")
+        layout.addWidget(tf_label)
 
 
 class OpportunityScannerWidget(QWidget):
@@ -285,15 +288,15 @@ class OpportunityScannerWidget(QWidget):
         # Update display
         self.update_display()
 
-        # Emit signal for decision engine
-        self.opportunities_updated.emit(self.opportunities)
-
         # Update time and status
         self.time_label.setText(f"Updated: {datetime.now().strftime('%H:%M:%S')}")
         if self.using_real_data:
             self.status_label.setText("🟢 LIVE DATA")
         else:
             self.status_label.setText("🔴 DISCONNECTED")
+
+        # Emit signal with updated opportunities
+        self.opportunities_updated.emit(self.opportunities)
 
     def generate_opportunities(self) -> List[Dict]:
         """Generate trading opportunities (demo version with realistic data)"""
@@ -369,26 +372,13 @@ class OpportunityScannerWidget(QWidget):
         # Scan all pairs across timeframes
         timeframes = ['H1', 'H4']  # Focus on these timeframes
 
-        print(f"[Scanner] Scanning {len(self.pairs_to_scan)} pairs across {len(timeframes)} timeframes...")
-
         for pair in self.pairs_to_scan:  # Scan all pairs
             for timeframe in timeframes:
                 try:
                     # Get candle data from MT5
                     df = self.mt5_connector.get_candles(pair, timeframe, 200)
 
-                    # FALLBACK: If data not available for this pair, try EURUSD as fallback
-                    if df is None and pair != 'EURUSD':
-                        df = self.mt5_connector.get_candles('EURUSD', timeframe, 200)
-                        if df is not None:
-                            print(f"[Scanner] Using EURUSD data as fallback for {pair} {timeframe}")
-
-                    if df is None:
-                        print(f"[DEBUG] {pair} {timeframe}: No data available")
-                        continue
-
-                    if len(df) < 100:
-                        print(f"[DEBUG] {pair} {timeframe}: Not enough candles (got {len(df)})")
+                    if df is None or len(df) < 100:
                         continue
 
                     # Analyze for trading opportunity
@@ -415,9 +405,7 @@ class OpportunityScannerWidget(QWidget):
         - ATR-based positioning
         """
         try:
-            print(f"[DEBUG] Analyzing {symbol} {timeframe}...")
             if len(df) < 100:
-                print(f"[DEBUG] {symbol} {timeframe}: Not enough data (len={len(df)})")
                 return None
 
             # === CALCULATE INDICATORS ===
@@ -515,9 +503,7 @@ class OpportunityScannerWidget(QWidget):
                     pattern_detected = "Trend Continuation"
                     quality_score += 5
                 else:
-                    # Relaxed: Allow opportunities without perfect trend, but with lower score
-                    pattern_detected = "Range/Consolidation"
-                    pattern_direction = "BUY" if current_close > ema_50 else "SELL"
+                    return None  # No clear setup
 
             # === VALIDATE TREND ALIGNMENT ===
             if pattern_direction == "BUY":
@@ -586,12 +572,9 @@ class OpportunityScannerWidget(QWidget):
                 reasons.append(f"R:R {rr:.1f}")
 
             # === QUALITY THRESHOLD ===
-            # Lowered threshold to show more opportunities
-            if quality_score < 30:  # Very permissive - show most setups
-                print(f"[DEBUG] {symbol} {timeframe}: Rejected - quality_score={quality_score} < 30")
+            # Only return opportunities with score > 65
+            if quality_score < 65:
                 return None
-
-            print(f"[Scanner] ✓ {symbol} {timeframe}: Quality={quality_score}, Direction={pattern_direction}")
 
             # Ensure we have reasons
             if not reasons:
