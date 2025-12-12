@@ -60,13 +60,14 @@ class OpportunityCard(QFrame):
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(4)
 
-        # Header: Symbol + Direction + Score
+        # Header: Symbol + Timeframe + Direction + Score
         header_layout = QHBoxLayout()
 
-        symbol_label = QLabel(self.opportunity['symbol'])
-        symbol_label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        symbol_label.setStyleSheet("color: #FFFFFF;")
-        header_layout.addWidget(symbol_label)
+        # Symbol and Timeframe together
+        symbol_tf = QLabel(f"{self.opportunity['symbol']} • {self.opportunity['timeframe']}")
+        symbol_tf.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        symbol_tf.setStyleSheet("color: #FFFFFF;")
+        header_layout.addWidget(symbol_tf)
 
         direction = self.opportunity['direction']
         dir_color = '#10B981' if direction == 'BUY' else '#EF4444'
@@ -122,12 +123,6 @@ class OpportunityCard(QFrame):
         reasons_label.setStyleSheet("color: #D1D5DB;")
         reasons_label.setWordWrap(True)
         layout.addWidget(reasons_label)
-
-        # Timeframe
-        tf_label = QLabel(f"⏱ {self.opportunity['timeframe']}")
-        tf_label.setFont(QFont("Arial", 8))
-        tf_label.setStyleSheet("color: #9CA3AF;")
-        layout.addWidget(tf_label)
 
 
 class OpportunityScannerWidget(QWidget):
