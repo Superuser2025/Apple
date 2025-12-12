@@ -104,7 +104,9 @@ class OpportunityCard(QFrame):
         tp_text.setStyleSheet("color: #10B981;")
         entry_layout.addWidget(tp_text)
 
-        rr_text = QLabel(f"R:R {self.opportunity['risk_reward']:.1f}")
+        # Handle both 'risk_reward' and 'rr' keys for compatibility
+        rr_value = self.opportunity.get('risk_reward') or self.opportunity.get('rr', 0)
+        rr_text = QLabel(f"R:R {rr_value:.1f}")
         rr_text.setFont(QFont("Courier", 9, QFont.Weight.Bold))
         rr_text.setStyleSheet("color: #3B82F6;")
         entry_layout.addWidget(rr_text)
@@ -112,8 +114,8 @@ class OpportunityCard(QFrame):
         entry_layout.addStretch()
         layout.addLayout(entry_layout)
 
-        # Confluence reasons
-        reasons = self.opportunity.get('confluence_reasons', [])
+        # Confluence reasons - handle both key names for compatibility
+        reasons = self.opportunity.get('confluence_reasons') or self.opportunity.get('reasons', [])
         reasons_text = " • ".join(reasons[:3])  # Top 3 reasons
         reasons_label = QLabel(f"✓ {reasons_text}")
         reasons_label.setFont(QFont("Arial", 8))
