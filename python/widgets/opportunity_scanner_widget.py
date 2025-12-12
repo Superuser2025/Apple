@@ -405,7 +405,9 @@ class OpportunityScannerWidget(QWidget):
         - ATR-based positioning
         """
         try:
+            print(f"[DEBUG] Analyzing {symbol} {timeframe}...")
             if len(df) < 100:
+                print(f"[DEBUG] {symbol} {timeframe}: Not enough data (len={len(df)})")
                 return None
 
             # === CALCULATE INDICATORS ===
@@ -576,7 +578,10 @@ class OpportunityScannerWidget(QWidget):
             # === QUALITY THRESHOLD ===
             # Only return opportunities with score > 65
             if quality_score < 50:  # Lowered from 65 to 50 to see more opportunities
+                print(f"[DEBUG] {symbol} {timeframe}: FILTERED OUT - quality_score={quality_score} < 50")
                 return None
+
+            print(f"[DEBUG] {symbol} {timeframe}: PASSED - quality_score={quality_score}, direction={pattern_direction}")
 
             # Ensure we have reasons
             if not reasons:
