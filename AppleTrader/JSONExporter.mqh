@@ -52,6 +52,7 @@ public:
 
    //--- Object methods
    void              BeginObject(string key);
+   void              BeginArrayObject();      // For anonymous objects in arrays
    void              EndObject();
 
    //--- Utility
@@ -341,6 +342,24 @@ void CJSONExporter::BeginObject(string key)
       indent += "  ";
 
    m_jsonContent += indent + "\"" + key + "\": {\n";
+   m_isObjectOpen = true;
+   m_arrayDepth++;
+   m_firstElement = true;
+}
+
+//+------------------------------------------------------------------+
+//| Begin array object (anonymous object in array)                   |
+//+------------------------------------------------------------------+
+void CJSONExporter::BeginArrayObject()
+{
+   if(!m_firstElement)
+      m_jsonContent += ",\n";
+
+   string indent = "  ";
+   for(int i = 0; i < m_arrayDepth; i++)
+      indent += "  ";
+
+   m_jsonContent += indent + "{\n";
    m_isObjectOpen = true;
    m_arrayDepth++;
    m_firstElement = true;

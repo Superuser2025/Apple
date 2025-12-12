@@ -723,7 +723,7 @@ void ExportMarketDataToJSON()
             jsonExporter.BeginArray(key);
             for(int i = 0; i < copied && i < 200; i++)
             {
-               jsonExporter.BeginObject();
+               jsonExporter.BeginArrayObject();
                jsonExporter.AddLong("time", (long)rates[i].time);
                jsonExporter.AddDouble("open", rates[i].open, 5);
                jsonExporter.AddDouble("high", rates[i].high, 5);
