@@ -371,33 +371,10 @@ class OpportunityScannerWidget(QWidget):
         """Scan real market data from MT5 for trading opportunities"""
         opportunities = []
 
-        # === TEMPORARY TEST: Add a fake opportunity to verify display works ===
-        print("=" * 80)
-        print("🧪 [TEST] Creating fake opportunity to verify display...")
-        print("=" * 80)
-        fake_opp = {
-            'symbol': 'EURUSD',
-            'timeframe': 'H4',
-            'direction': 'BUY',
-            'entry': 1.10500,
-            'stop_loss': 1.10200,
-            'take_profit': 1.11100,
-            'risk_reward': 2.0,  # Fixed: was 'rr', card expects 'risk_reward'
-            'quality_score': 75,
-            'confluence_reasons': ['TEST OPPORTUNITY', 'Verify cards display', 'If you see this, display works!']  # Fixed: was 'reasons'
-        }
-        opportunities.append(fake_opp)
-        print(f"🧪 [TEST] Added fake opportunity: {fake_opp}")
-        print("=" * 80)
-        return opportunities  # Return immediately with test opportunity
-
-        # === REST OF SCAN DISABLED FOR TESTING ===
-
         # Scan all pairs across timeframes
         timeframes = ['H1', 'H4']  # Focus on these timeframes
 
-        print(f"[DEBUG] scan_real_market_data: pairs_to_scan = {self.pairs_to_scan}")
-        print(f"[DEBUG] scan_real_market_data: Scanning {len(self.pairs_to_scan)} pairs x {len(timeframes)} timeframes")
+        print(f"[Scanner] Scanning {len(self.pairs_to_scan)} pairs across {len(timeframes)} timeframes...")
 
         for pair in self.pairs_to_scan:  # Scan all pairs
             for timeframe in timeframes:
@@ -608,12 +585,12 @@ class OpportunityScannerWidget(QWidget):
                 reasons.append(f"R:R {rr:.1f}")
 
             # === QUALITY THRESHOLD ===
-            # Only return opportunities with score > 65
-            if quality_score < 50:  # Lowered from 65 to 50 to see more opportunities
-                print(f"[DEBUG] {symbol} {timeframe}: FILTERED OUT - quality_score={quality_score} < 50")
+            # Lowered threshold to show more opportunities
+            if quality_score < 30:  # Very permissive - show most setups
+                print(f"[DEBUG] {symbol} {timeframe}: Rejected - quality_score={quality_score} < 30")
                 return None
 
-            print(f"[DEBUG] {symbol} {timeframe}: PASSED - quality_score={quality_score}, direction={pattern_direction}")
+            print(f"[Scanner] ✓ {symbol} {timeframe}: Quality={quality_score}, Direction={pattern_direction}")
 
             # Ensure we have reasons
             if not reasons:
