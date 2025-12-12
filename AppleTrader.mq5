@@ -694,10 +694,10 @@ void ExportMarketDataToJSON()
    jsonExporter.AddDouble("account_equity", AccountInfoDouble(ACCOUNT_EQUITY), 2);
    jsonExporter.AddDouble("risk_percent", RiskPercentage, 2);
 
-   //--- Export candle data for all scanner pairs/timeframes
+   //--- Export candle data for all scanner pairs/timeframes (M5 and upwards)
    Print("[EXPORT] Exporting candle data for scanner...");
    string scannerPairs[] = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NZDUSD", "USDCHF", "EURGBP", "EURJPY", "GBPJPY"};
-   ENUM_TIMEFRAMES scannerTimeframes[] = {PERIOD_H1, PERIOD_H4};
+   ENUM_TIMEFRAMES scannerTimeframes[] = {PERIOD_M5, PERIOD_M15, PERIOD_M30, PERIOD_H1, PERIOD_H4, PERIOD_D1};
 
    for(int p = 0; p < ArraySize(scannerPairs); p++)
    {
@@ -705,7 +705,13 @@ void ExportMarketDataToJSON()
       {
          string pair = scannerPairs[p];
          ENUM_TIMEFRAMES tf = scannerTimeframes[t];
-         string tfStr = (tf == PERIOD_H1) ? "H1" : "H4";
+         string tfStr = "";
+         if(tf == PERIOD_M5)  tfStr = "M5";
+         else if(tf == PERIOD_M15) tfStr = "M15";
+         else if(tf == PERIOD_M30) tfStr = "M30";
+         else if(tf == PERIOD_H1)  tfStr = "H1";
+         else if(tf == PERIOD_H4)  tfStr = "H4";
+         else if(tf == PERIOD_D1)  tfStr = "D1";
          string key = "candles_" + pair + "_" + tfStr;
 
          MqlRates rates[];
