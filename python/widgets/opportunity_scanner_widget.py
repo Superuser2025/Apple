@@ -503,7 +503,9 @@ class OpportunityScannerWidget(QWidget):
                     pattern_detected = "Trend Continuation"
                     quality_score += 5
                 else:
-                    return None  # No clear setup
+                    # Relaxed: Allow opportunities without perfect trend, but with lower score
+                    pattern_detected = "Range/Consolidation"
+                    pattern_direction = "BUY" if current_close > ema_50 else "SELL"
 
             # === VALIDATE TREND ALIGNMENT ===
             if pattern_direction == "BUY":
