@@ -694,6 +694,43 @@ void ExportMarketDataToJSON()
    jsonExporter.AddDouble("account_equity", AccountInfoDouble(ACCOUNT_EQUITY), 2);
    jsonExporter.AddDouble("risk_percent", RiskPercentage, 2);
 
+   //--- Export candle data for all scanner pairs/timeframes
+   Print("[EXPORT] Exporting candle data for scanner...");
+   string scannerPairs[] = {"EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NZDUSD", "USDCHF", "EURGBP", "EURJPY", "GBPJPY"};
+   ENUM_TIMEFRAMES scannerTimeframes[] = {PERIOD_H1, PERIOD_H4};
+
+   for(int p = 0; p < ArraySize(scannerPairs); p++)
+   {
+      for(int t = 0; t < ArraySize(scannerTimeframes); t++)
+      {
+         string pair = scannerPairs[p];
+         ENUM_TIMEFRAMES tf = scannerTimeframes[t];
+         string tfStr = (tf == PERIOD_H1) ? "H1" : "H4";
+         string key = "candles_" + pair + "_" + tfStr;
+
+         MqlRates rates[];
+         ArraySetAsSeries(rates, true);
+         int copied = CopyRates(pair, tf, 0, 200, rates);
+
+         if(copied > 0)
+         {
+            jsonExporter.BeginArray(key);
+            for(int i = 0; i < copied && i < 200; i++)
+            {
+               jsonExporter.BeginObject();
+               jsonExporter.AddLong("time", (long)rates[i].time);
+               jsonExporter.AddDouble("open", rates[i].open, 5);
+               jsonExporter.AddDouble("high", rates[i].high, 5);
+               jsonExporter.AddDouble("low", rates[i].low, 5);
+               jsonExporter.AddDouble("close", rates[i].close, 5);
+               jsonExporter.AddLong("volume", rates[i].tick_volume);
+               jsonExporter.EndObject();
+            }
+            jsonExporter.EndArray();
+         }
+      }
+   }
+
    Print("[EXPORT] Writing JSON to file...");
    bool success = jsonExporter.EndExport();
 
