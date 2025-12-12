@@ -372,13 +372,21 @@ class OpportunityScannerWidget(QWidget):
         # Scan all pairs across timeframes
         timeframes = ['H1', 'H4']  # Focus on these timeframes
 
+        print(f"[DEBUG] scan_real_market_data: pairs_to_scan = {self.pairs_to_scan}")
+        print(f"[DEBUG] scan_real_market_data: Scanning {len(self.pairs_to_scan)} pairs x {len(timeframes)} timeframes")
+
         for pair in self.pairs_to_scan:  # Scan all pairs
             for timeframe in timeframes:
                 try:
                     # Get candle data from MT5
                     df = self.mt5_connector.get_candles(pair, timeframe, 200)
 
-                    if df is None or len(df) < 100:
+                    if df is None:
+                        print(f"[DEBUG] {pair} {timeframe}: get_candles returned None")
+                        continue
+
+                    if len(df) < 100:
+                        print(f"[DEBUG] {pair} {timeframe}: Not enough candles (got {len(df)})")
                         continue
 
                     # Analyze for trading opportunity
