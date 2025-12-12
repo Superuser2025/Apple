@@ -220,12 +220,25 @@ class MainWindow(QMainWindow):
         tabs.setTabPosition(QTabWidget.TabPosition.North)
 
         # Tab 1: Trade Decision (MOST IMPORTANT - NEW!)
-        decision_tab = QWidget()
-        decision_layout = QVBoxLayout(decision_tab)
-        self.decision_widget = TradeDecisionWidget()
-        self.decision_widget.execute_trade.connect(self.on_execute_trade_from_decision)
-        decision_layout.addWidget(self.decision_widget)
-        tabs.addTab(decision_tab, "🎯 DECISION")
+        try:
+            print("=" * 60)
+            print("🎯 [DEBUG] Creating Trade Decision tab...")
+            decision_tab = QWidget()
+            decision_layout = QVBoxLayout(decision_tab)
+            print("🎯 [DEBUG] Importing TradeDecisionWidget...")
+            self.decision_widget = TradeDecisionWidget()
+            print("🎯 [DEBUG] Connecting execute signal...")
+            self.decision_widget.execute_trade.connect(self.on_execute_trade_from_decision)
+            decision_layout.addWidget(self.decision_widget)
+            tabs.addTab(decision_tab, "🎯 DECISION")
+            print("🎯 [DEBUG] ✅ DECISION TAB CREATED SUCCESSFULLY!")
+            print("=" * 60)
+        except Exception as e:
+            print("=" * 60)
+            print(f"❌ [ERROR] Failed to create Decision tab: {e}")
+            import traceback
+            traceback.print_exc()
+            print("=" * 60)
 
         # Tab 2: Position Sizing
         sizing_tab = QWidget()
