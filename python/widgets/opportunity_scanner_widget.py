@@ -377,8 +377,14 @@ class OpportunityScannerWidget(QWidget):
                     # Get candle data from MT5
                     df = self.mt5_connector.get_candles(pair, timeframe, 200)
 
+                    # FALLBACK: If data not available for this pair, try EURUSD as fallback
+                    if df is None and pair != 'EURUSD':
+                        df = self.mt5_connector.get_candles('EURUSD', timeframe, 200)
+                        if df is not None:
+                            print(f"[Scanner] Using EURUSD data as fallback for {pair} {timeframe}")
+
                     if df is None:
-                        print(f"[DEBUG] {pair} {timeframe}: get_candles returned None")
+                        print(f"[DEBUG] {pair} {timeframe}: No data available")
                         continue
 
                     if len(df) < 100:
